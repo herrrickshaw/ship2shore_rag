@@ -1,0 +1,11 @@
+# Curate additional PDF/URL literature here. Only add sources you have the
+# right to ingest (public domain, freely licensed, or your own documents).
+#
+# UNCTAD's annual "Review of Maritime Transport" is published openly:
+# https://unctad.org/publication/review-maritime-transport-2024
+# Add the direct PDF link(s) you want ingested below.
+
+pdf_sources: []
+#  - url: "https://unctad.org/system/files/official-document/rmt2024_en.pdf"
+#    title: "UNCTAD Review of Maritime Transport 2024"
+#    license: "UNCTAD open access"
