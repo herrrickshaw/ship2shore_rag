@@ -31,3 +31,30 @@ def test_unsupported_extension_raises(tmp_path):
     p.write_text("a,b\n1,2")
     with pytest.raises(ValueError):
         load_file(str(p))
+
+
+def test_load_xlsx(tmp_path):
+    openpyxl = pytest.importorskip("openpyxl")
+    p = tmp_path / "fleet.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Vessels"
+    ws.append(["Name", "Type"])
+    ws.append(["Baylor J. Tregre", "Towing vessel"])
+    wb.save(p)
+
+    doc = load_file(str(p))
+    assert "Vessels" in doc["text"]
+    assert "Baylor J. Tregre" in doc["text"]
+
+
+def test_load_pptx(tmp_path):
+    pptx = pytest.importorskip("pptx")
+    p = tmp_path / "briefing.pptx"
+    prs = pptx.Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = "Casualty Briefing"
+    prs.save(p)
+
+    doc = load_file(str(p))
+    assert "Casualty Briefing" in doc["text"]

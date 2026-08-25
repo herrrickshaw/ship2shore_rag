@@ -58,7 +58,13 @@ def fetch_arxiv(query: str, max_results: int = 20) -> list[dict]:
         "start": 0,
         "max_results": max_results,
     }
-    resp = requests.get(ARXIV_API, params=params, headers=HEADERS, timeout=30)
+    resp = None
+    for attempt, backoff in enumerate((0, 10, 30)):
+        if backoff:
+            time.sleep(backoff)
+        resp = requests.get(ARXIV_API, params=params, headers=HEADERS, timeout=30)
+        if resp.status_code != 429:
+            break
     resp.raise_for_status()
     ns = {"atom": "http://www.w3.org/2005/Atom"}
     root = ET.fromstring(resp.text)
@@ -89,7 +95,12 @@ def fetch_arxiv_seed(queries: list[str] | None = None, max_results_per_query: in
     seen: set[str] = set()
     out = []
     for query in queries:
-        for doc in fetch_arxiv(query, max_results_per_query):
+        try:
+            results = fetch_arxiv(query, max_results_per_query)
+        except Exception as e:
+            print(f"  skipping query {query!r}: {type(e).__name__}: {e}")
+            continue
+        for doc in results:
             if doc["url"] in seen:
                 continue
             seen.add(doc["url"])

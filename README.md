@@ -68,7 +68,7 @@ python3 cli.py ingest --source wikipedia
 python3 cli.py ingest --source maib --max-results 30       # UK casualty reports, via gov.uk's Atom feed
 python3 cli.py ingest --source pdf --config ingest/sources.yaml   # NTSB reports + anything you curate
 
-# Ingest your own local files — PDF, TXT, Markdown, HTML, or Word
+# Ingest your own local files — PDF, TXT, Markdown, HTML, Word, Excel, or PowerPoint
 python3 cli.py ingest --source file --path "./docs/**/*"
 
 # Ask a question (hybrid dense+keyword retrieval, then Claude if ANTHROPIC_API_KEY is set)
@@ -87,7 +87,7 @@ python3 cli.py ask "what caused the Dali allision?" --export briefing.txt   # pl
 
 ```
 ingest/sources.py       -> fetches raw documents (arXiv API, Wikipedia API, MAIB Atom feed, PDF URLs)
-ingest/loaders.py        -> loads local files instead — PDF, TXT/MD, HTML, DOCX
+ingest/loaders.py        -> loads local files instead — PDF, TXT/MD, HTML, DOCX, XLSX, PPTX
 ingest/chunk.py            -> splits documents into overlapping word-window chunks
 ingest/embed.py              -> embeds chunks locally (sentence-transformers)
 ingest/ingest.py               -> orchestrates fetch -> chunk -> embed -> upsert into pgvector

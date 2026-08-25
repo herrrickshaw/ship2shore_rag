@@ -1,6 +1,6 @@
 """Local-file ingestion — supplements the URL-based fetchers in sources.py.
 Supports the file types most literature actually shows up as: PDF, plain
-text/Markdown, HTML, and Word documents."""
+text/Markdown, HTML, Word, Excel, and PowerPoint documents."""
 import glob
 from pathlib import Path
 
@@ -31,6 +31,35 @@ def _load_docx(path: Path) -> str:
     return "\n".join(p.text for p in doc.paragraphs)
 
 
+def _load_xlsx(path: Path) -> str:
+    from openpyxl import load_workbook
+
+    wb = load_workbook(str(path), read_only=True, data_only=True)
+    lines = []
+    for sheet in wb.worksheets:
+        lines.append(f"# {sheet.title}")
+        for row in sheet.iter_rows(values_only=True):
+            cells = [str(c) for c in row if c is not None]
+            if cells:
+                lines.append("\t".join(cells))
+    return "\n".join(lines)
+
+
+def _load_pptx(path: Path) -> str:
+    from pptx import Presentation
+
+    prs = Presentation(str(path))
+    lines = []
+    for i, slide in enumerate(prs.slides, 1):
+        lines.append(f"# Slide {i}")
+        for shape in slide.shapes:
+            if shape.has_text_frame and shape.text_frame.text.strip():
+                lines.append(shape.text_frame.text)
+        if slide.has_notes_slide and slide.notes_slide.notes_text_frame.text.strip():
+            lines.append(f"(notes) {slide.notes_slide.notes_text_frame.text}")
+    return "\n".join(lines)
+
+
 LOADERS = {
     ".pdf": _load_pdf,
     ".txt": _load_text,
@@ -39,6 +68,9 @@ LOADERS = {
     ".html": _load_html,
     ".htm": _load_html,
     ".docx": _load_docx,
+    ".xlsx": _load_xlsx,
+    ".xlsm": _load_xlsx,
+    ".pptx": _load_pptx,
 }
 
 
