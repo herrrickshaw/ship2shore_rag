@@ -28,6 +28,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
-      - run: pip install pytest pyyaml sqlite-vec
+      - run: pip install pytest pyyaml sqlite-vec beautifulsoup4 python-docx pypdf
       - name: Run tests (no Postgres / no heavy ML deps needed for these)
-        run: pytest -q tests/test_chunk.py tests/test_sources.py tests/test_sqlite_store.py
+        run: pytest -q tests/test_chunk.py tests/test_sources.py tests/test_sqlite_store.py tests/test_loaders.py tests/test_export.py

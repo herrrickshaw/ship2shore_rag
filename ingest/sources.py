@@ -20,6 +20,18 @@ ARXIV_API = "http://export.arxiv.org/api/query"
 WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 MAIB_FEED = "https://www.gov.uk/maib-reports.atom"
 
+DEFAULT_ARXIV_QUERIES = [
+    "container shipping logistics",
+    "maritime accident root cause analysis",
+    "maritime casualty investigation retrieval augmented generation",
+    "ship collision risk prediction",
+    "port state control detention prediction",
+    "vessel traffic service large language model",
+    "maritime autonomous surface ship safety",
+    "maritime domain large language model",
+    "ship accident human factors analysis",
+]
+
 DEFAULT_WIKIPEDIA_TITLES = [
     "Containerization",
     "Bill of lading",
@@ -66,6 +78,23 @@ def fetch_arxiv(query: str, max_results: int = 20) -> list[dict]:
                 "license": "arXiv non-exclusive license",
             }
         )
+    return out
+
+
+def fetch_arxiv_seed(queries: list[str] | None = None, max_results_per_query: int = 15) -> list[dict]:
+    """Runs the built-in seed queries — general maritime/shipping literature plus
+    casualty/accident-analysis literature (the most active academic RAG sub-area
+    per the market survey) — and dedupes across queries by URL."""
+    queries = queries or DEFAULT_ARXIV_QUERIES
+    seen: set[str] = set()
+    out = []
+    for query in queries:
+        for doc in fetch_arxiv(query, max_results_per_query):
+            if doc["url"] in seen:
+                continue
+            seen.add(doc["url"])
+            out.append(doc)
+        time.sleep(3)  # arXiv's API usage policy asks for >=3s between requests
     return out
 
 
