@@ -21,3 +21,12 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/ship2shore
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 EMBEDDING_DIM = 384  # matches all-MiniLM-L6-v2
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+
+# STORAGE_BACKEND selects where retrieval reads from:
+#   "postgres" (default) — shore-side: full ingestion + Postgres/pgvector.
+#   "sqlite"              — vessel-side: a single portable file, no DB server,
+#                            no network. Built via `cli.py export-sqlite` shore-side
+#                            and copied aboard (USB / low-bandwidth sync at port).
+# See README "Shipboard deployment" for why this split exists.
+STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "postgres")
+SQLITE_PATH = os.environ.get("SQLITE_PATH", str(ROOT / "ship2shore.sqlite3"))

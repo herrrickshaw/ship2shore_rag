@@ -2,24 +2,36 @@
 
 A retrieval-augmented generation (RAG) system for maritime/ocean-freight shipping
 knowledge — vessel operations, port logistics, bills of lading, freight economics,
-and maritime regulation. It ingests literature from free, legal public sources
-(arXiv papers, Wikipedia, UNCTAD's annual Review of Maritime Transport, and any
-PDF/URL you add), embeds it locally, stores it in Postgres/pgvector, and answers
-questions by retrieving relevant passages and (optionally) generating a cited
-answer with Claude.
+maritime regulation, and casualty/accident analysis. It ingests literature from
+free, legal public sources (arXiv papers, Wikipedia, UK MAIB casualty reports, US
+NTSB marine accident reports, and any PDF/URL you add), embeds it locally, stores
+it in Postgres/pgvector, and answers questions via hybrid (dense + keyword)
+retrieval with an optional cited answer from Claude.
 
-**Status:** early scaffold — ingestion + retrieval work end-to-end; generation is
-optional and requires an Anthropic API key.
+A [market and literature survey](https://claude.ai/code/artifact/7bfb100c-35be-4b5d-aa7f-4fc4c5a5476c)
+of the maritime-AI space shaped this scope: every well-funded competitor (DNV
+RuleAgent, Marcura, Veson CoCaptain, MarineGPT.in) is grounded in proprietary,
+licensed, or paywalled data behind a login. Nothing found offers a free,
+self-hostable RAG over only legally-open literature — that's the gap this project
+sits in, and it's why every ingestion source here is one you can point to and say
+"I have the right to use this."
+
+**Status:** ingestion, hybrid retrieval, and a vessel-side offline deployment path
+all work end-to-end; generation is optional and requires an Anthropic API key.
 
 ## Stack
 
-- **Postgres + [pgvector](https://github.com/pgvector/pgvector)** — chunk storage and
-  cosine-similarity search.
+- **Postgres + [pgvector](https://github.com/pgvector/pgvector)** — shore-side chunk
+  storage and hybrid retrieval (dense cosine + Postgres full-text search, fused via
+  Reciprocal Rank Fusion).
+- **SQLite + [sqlite-vec](https://github.com/asg017/sqlite-vec)** — vessel-side: the
+  same hybrid retrieval (dense + FTS5 BM25) against a single portable file, no
+  server, no network. See **Shipboard deployment** below.
 - **sentence-transformers (`all-MiniLM-L6-v2`)** — local, free, no API key needed for
-  embeddings.
+  embeddings, and small/CPU-only enough to run on modest hardware.
 - **Claude (optional)** — generates a cited answer from retrieved passages. Without
   `ANTHROPIC_API_KEY` set, `ask` falls back to returning the raw ranked passages
-  (extractive mode, still fully functional).
+  (extractive mode, still fully functional, and the only mode available offline).
 
 ## Setup
 
@@ -50,12 +62,13 @@ python3 cli.py init-db
 ## Usage
 
 ```bash
-# Ingest from the built-in free sources (arXiv + Wikipedia + UNCTAD report list)
+# Ingest from the built-in free sources
 python3 cli.py ingest --source arxiv --query "container shipping logistics" --max-results 20
 python3 cli.py ingest --source wikipedia
-python3 cli.py ingest --source pdf --config ingest/sources.yaml
+python3 cli.py ingest --source maib --max-results 30       # UK casualty reports, via gov.uk's Atom feed
+python3 cli.py ingest --source pdf --config ingest/sources.yaml   # NTSB reports + anything you curate
 
-# Ask a question
+# Ask a question (hybrid dense+keyword retrieval, then Claude if ANTHROPIC_API_KEY is set)
 python3 cli.py ask "What drives container freight rate volatility?"
 
 # Just retrieve passages, no generation
@@ -65,14 +78,38 @@ python3 cli.py ask "bill of lading vs sea waybill" --no-generate
 ## How it works
 
 ```
-ingest/sources.py   -> fetches raw documents (arXiv API, Wikipedia API, PDF URLs)
-ingest/chunk.py      -> splits documents into overlapping word-window chunks
-ingest/embed.py       -> embeds chunks locally (sentence-transformers)
-ingest/ingest.py       -> orchestrates fetch -> chunk -> embed -> upsert into pgvector
-retrieval/retriever.py  -> embeds a query, cosine-search top-k chunks in pgvector
-rag/pipeline.py          -> builds a cited prompt from top-k chunks, calls Claude (optional)
-db/schema.sql             -> documents + chunks tables, ivfflat cosine index
+ingest/sources.py       -> fetches raw documents (arXiv API, Wikipedia API, MAIB Atom feed, PDF URLs)
+ingest/chunk.py          -> splits documents into overlapping word-window chunks
+ingest/embed.py           -> embeds chunks locally (sentence-transformers)
+ingest/ingest.py           -> orchestrates fetch -> chunk -> embed -> upsert into pgvector
+retrieval/retriever.py      -> hybrid retrieval: dense cosine + Postgres full-text, fused via RRF
+retrieval/sqlite_store.py    -> same hybrid retrieval against the vessel-side SQLite snapshot
+rag/pipeline.py                -> builds a cited prompt from top-k chunks, calls Claude (optional)
+db/schema.sql                   -> documents + chunks tables, ivfflat cosine index + GIN full-text index
+ingest/export_sqlite.py          -> snapshots the Postgres corpus into a single portable SQLite file
 ```
+
+Retrieval fuses two rankings via [Reciprocal Rank
+Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) — the same
+pattern used for maritime accident-report retrieval in "Multi-Field Hybrid RAG
+for Maritime Accident Root Cause Analysis" (arXiv 2606.13249): dense embedding
+similarity finds conceptually related passages, keyword search catches exact
+terms (vessel names, regulation numbers, IMO numbers) that embeddings can miss.
+
+## Sources
+
+| `--source` | What | License |
+|---|---|---|
+| `arxiv` | Papers matching a search query | arXiv non-exclusive license |
+| `wikipedia` | A curated list of maritime-topic articles | CC BY-SA 4.0 |
+| `maib` | UK Marine Accident Investigation Branch reports, discovered via `gov.uk/maib-reports.atom` | Open Government Licence v3.0 |
+| `pdf` | Anything in `ingest/sources.yaml` — seeded with NTSB marine accident reports | varies; NTSB reports are U.S. government works (public domain, 17 U.S.C. §105) |
+
+NTSB has no stable public feed like MAIB's Atom feed (its search UI, CAROL, is a
+private JS API) — report URLs there are curated by hand. Find more at
+[data.ntsb.gov/carol-main-public](https://data.ntsb.gov/carol-main-public/basic-search)
+(Mode = Marine); report PDFs live at a predictable path,
+`ntsb.gov/investigations/AccidentReports/Reports/MIR####.pdf`.
 
 ## Adding more literature
 
@@ -84,6 +121,30 @@ Respect each source's license/terms — this project only ingests sources that a
 freely and legally accessible; it does not scrape paywalled or ToS-restricted
 sites.
 
+## Shipboard deployment
+
+Vessels are not offices: no dedicated database server, often no GPU, and
+connectivity is expensive, low-bandwidth satellite (VSAT/FleetBroadband) rather
+than always-on internet — not a place to run live ingestion or depend on a
+reachable Postgres server. This project splits accordingly:
+
+| Tier | Where | Storage | Ingestion | Generation |
+|---|---|---|---|---|
+| **Shore** | office/shore-based server | Postgres + pgvector | Live (`cli.py ingest`) | Claude, if online |
+| **Vessel** | onboard PC, offline | one SQLite file (`cli.py export-sqlite`) | None — read-only snapshot | Extractive only (no network needed) |
+| **Vessel, in port / satellite window** | onboard PC, intermittently online | same SQLite file, periodically refreshed | None | Claude, if reachable |
+
+Workflow: ingest and re-index shore-side as usual, then run
+`python3 cli.py export-sqlite` to produce one file (a few MB for a corpus like
+this one) and copy it aboard — USB at a port call, or over a compressed
+low-bandwidth sync during a satellite window, the same way ECDIS chart updates
+already reach most vessels. Onboard, set `STORAGE_BACKEND=sqlite` and
+`SQLITE_PATH=/path/to/ship2shore.sqlite3` in `.env`; `cli.py ask` then needs
+nothing else — no Postgres, no network — to retrieve and cite passages. `sqlite-vec`
+is a pure C extension with no server process, and the embedding model
+(`all-MiniLM-L6-v2`) is ~90MB and runs on CPU, so the whole retrieval path fits
+comfortably on a low-power shipboard PC.
+
 ## Not yet done
 
 - No web UI — CLI only.
@@ -91,3 +152,7 @@ sites.
   change detection yet).
 - No chunk-level citation verification (unlike this user's other research repos,
   there is no `cite_check.py` wired in here yet).
+- No automated NTSB crawler (CAROL's API isn't public/documented — see Sources).
+- Citation traceability is source-link only; no per-paragraph / regulation-version
+  tracking yet (the DNV RuleAgent / Vibylabs temporal-knowledge-graph pattern from
+  the market survey is a documented future direction, not implemented).

@@ -4,8 +4,25 @@
 # UNCTAD's annual "Review of Maritime Transport" is published openly:
 # https://unctad.org/publication/review-maritime-transport-2024
 # Add the direct PDF link(s) you want ingested below.
+#
+# NTSB marine accident reports are U.S. government works (17 U.S.C. §105 —
+# public domain) but NTSB has no stable public feed like MAIB's Atom feed:
+# its search UI (CAROL, data.ntsb.gov) is a private JS API, not a documented
+# one, so report URLs are curated by hand here rather than auto-crawled.
+# Find more at https://data.ntsb.gov/carol-main-public/basic-search
+# (Mode = Marine) — report PDFs live at a stable, predictable path:
+# https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR####.pdf
 
-pdf_sources: []
+pdf_sources:
+  - url: "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2540.pdf"
+    title: "Contact of Containership Dali with the Francis Scott Key Bridge"
+    license: "U.S. government work — public domain"
+  - url: "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2513.pdf"
+    title: "Diesel Generator Engine Failure Aboard Passenger Vessel Ocean Navigator"
+    license: "U.S. government work — public domain"
+  - url: "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2521.pdf"
+    title: "Capsizing and Sinking of Towing Vessel Baylor J. Tregre"
+    license: "U.S. government work — public domain"
 #  - url: "https://unctad.org/system/files/official-document/rmt2024_en.pdf"
 #    title: "UNCTAD Review of Maritime Transport 2024"
 #    license: "UNCTAD open access"
