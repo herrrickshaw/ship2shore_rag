@@ -81,3 +81,50 @@ pdf_sources:
     title: "Maritime Labour Convention"
     license: "CC BY-SA 4.0"
     type: html
+
+  # IMO's own convention pages — primary-source informational content,
+  # distinct from (and more authoritative than) the Wikipedia summaries
+  # already ingested for SOLAS/MARPOL under DEFAULT_WIKIPEDIA_TITLES.
+  # No open license stated on imo.org; treated as an informational public
+  # page, same caution as the UKHO NtM entries elsewhere in this repo.
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-for-the-Safety-of-Life-at-Sea-(SOLAS),-1974.aspx"
+    title: "International Convention for the Safety of Life at Sea (SOLAS), 1974"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-for-the-Prevention-of-Pollution-from-Ships-(MARPOL).aspx"
+    title: "International Convention for the Prevention of Pollution from Ships (MARPOL)"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-on-Standards-of-Training,-Certification-and-Watchkeeping-for-Seafarers-(STCW).aspx"
+    title: "International Convention on Standards of Training, Certification and Watchkeeping for Seafarers (STCW)"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-on-Load-Lines.aspx"
+    title: "International Convention on Load Lines"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/OurWork/HumanElement/Pages/ISMCode.aspx"
+    title: "The International Safety Management (ISM) Code"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/OurWork/Security/Pages/SOLAS-XI-2%20ISPS%20Code.aspx"
+    title: "SOLAS XI-2 and the ISPS Code"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-for-the-Control-and-Management-of-Ships'-Ballast-Water-and-Sediments-(BWM).aspx"
+    title: "International Convention for the Control and Management of Ships' Ballast Water and Sediments (BWM)"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-on-Tonnage-Measurement-of-Ships.aspx"
+    title: "International Convention on Tonnage Measurement of Ships"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/About/Conventions/Pages/International-Convention-on-Maritime-Search-and-Rescue-(SAR).aspx"
+    title: "International Convention on Maritime Search and Rescue (SAR)"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  # COLREGs (Convention on the International Regulations for Preventing
+  # Collisions at Sea) — IMO's own page for this one returns a genuine
+  # 500 Internal Server Error under the hood ("Coming Soon" stub content
+  # only), confirmed live 2026-08-26. Skipped rather than ingesting a
+  # broken stub; retry later if IMO fixes the page.

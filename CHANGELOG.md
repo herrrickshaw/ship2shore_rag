@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — 9 more IMO convention pages via type: html
+
+### Added
+- **9 IMO convention pages** (SOLAS, MARPOL, STCW, Load Lines, ISM Code,
+  ISPS Code, Ballast Water Management, Tonnage Measurement, Search and
+  Rescue) added to `ingest/sources.yaml` as `type: html` entries — primary-
+  source IMO content, distinct from (and more authoritative than) the
+  Wikipedia summaries already covering some of the same conventions.
+  Verified each page's actual content before adding, not just its HTTP
+  status: COLREGs' own IMO page returns a genuine 500 under a 200-wrapped
+  "Coming Soon" stub (confirmed live), so it's documented and skipped
+  rather than ingesting a broken page. Verified live end-to-end through
+  `cli.py ingest`: 9/9 landed with real content (55 chunks total,
+  3–11 chunks each), and a retrieval spot-check confirmed the new content
+  is genuinely retrievable and ranks sensibly alongside the existing
+  Wikipedia coverage rather than either crowding it out or sitting unused.
+  Corpus: 577 → 587 documents.
+
 ## [Unreleased] — 2026-08-26 — HTML sources in sources.yaml via Jina Reader
 
 ### Added
