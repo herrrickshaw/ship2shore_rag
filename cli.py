@@ -65,9 +65,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="ship2shore_rag CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("init-db").set_defaults(func=cmd_init_db)
+    sub.add_parser("init-db", help="create/update the schema (literature + operations tables)").set_defaults(func=cmd_init_db)
 
-    p_ingest = sub.add_parser("ingest")
+    p_ingest = sub.add_parser("ingest", help="pull literature into the corpus from a source (arXiv, Wikipedia, MAIB, NtM, PDF, or local files)")
     p_ingest.add_argument("--source", required=True, choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "file"])
     p_ingest.add_argument("--query", default=None, help="arxiv search query (omit to run the built-in seed queries)")
     p_ingest.add_argument("--max-results", type=int, default=20)
@@ -75,7 +75,7 @@ def main() -> None:
     p_ingest.add_argument("--path", default=None, help="glob for --source file, e.g. \"./docs/**/*.pdf\"")
     p_ingest.set_defaults(func=cmd_ingest)
 
-    p_ask = sub.add_parser("ask")
+    p_ask = sub.add_parser("ask", help="ask a question — hybrid retrieval over the corpus, optionally generated into a cited answer")
     p_ask.add_argument("question")
     p_ask.add_argument("--top-k", type=int, default=5)
     p_ask.add_argument("--no-generate", action="store_true")
