@@ -21,6 +21,13 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/ship2shore
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 EMBEDDING_DIM = 384  # matches all-MiniLM-L6-v2
 RERANKER_MODEL = os.environ.get("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+# Character count, not tokens: no tokenizer dependency exists in this repo,
+# and one isn't worth adding just for a budget guard. ~80k chars is a rough,
+# conservative stand-in for Claude's context window minus system prompt/
+# question/answer headroom -- generous at today's top_k=5 (a passage is
+# ~1-2k chars), the guard exists for when top_k gets raised, not because
+# it's binding now.
+MAX_CONTEXT_CHARS = int(os.environ.get("MAX_CONTEXT_CHARS", "80000"))
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # STORAGE_BACKEND selects where retrieval reads from:

@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Context-budget guard
+
+### Added
+- **`config.MAX_CONTEXT_CHARS`** (default 80,000, char count not tokens —
+  no tokenizer dependency exists in this repo, not worth adding just for
+  this) — `rag/pipeline.py:_build_context()` now stops adding passages once
+  the budget is reached instead of concatenating every `top_k` passage
+  unconditionally, printing how many were dropped. Not binding at today's
+  `top_k=5`; guards against a future larger `top_k` silently overflowing the
+  model's context window. Always keeps at least one passage even if it
+  alone exceeds the budget, rather than returning empty context.
+
 ## [Unreleased] — 2026-08-26 — Redundancy / near-duplicate filtering
 
 ### Added

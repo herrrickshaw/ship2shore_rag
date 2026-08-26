@@ -1,6 +1,6 @@
 """Retrieve top-k chunks, then either generate a cited answer with Claude
 (if ANTHROPIC_API_KEY is set) or return the ranked passages (extractive fallback)."""
-from config import ANTHROPIC_API_KEY
+from config import ANTHROPIC_API_KEY, MAX_CONTEXT_CHARS
 from retrieval.query_log import log_query
 from retrieval.retriever import retrieve
 
@@ -11,10 +11,21 @@ SYSTEM_PROMPT = (
 )
 
 
-def _build_context(passages: list[dict]) -> str:
-    return "\n\n".join(
-        f"[{i+1}] {p['title']} ({p['url']})\n{p['content']}" for i, p in enumerate(passages)
-    )
+def _build_context(passages: list[dict], max_chars: int = MAX_CONTEXT_CHARS) -> str:
+    """Assembles numbered source blocks, stopping before max_chars rather
+    than blindly concatenating every passage — nothing enforced a budget
+    before this, so raising top_k had no guard against silently overflowing
+    the model's context window."""
+    blocks = []
+    total = 0
+    for i, p in enumerate(passages):
+        block = f"[{i+1}] {p['title']} ({p['url']})\n{p['content']}"
+        if blocks and total + len(block) > max_chars:
+            print(f"context budget ({max_chars} chars) reached — dropped {len(passages) - i} of {len(passages)} passages")
+            break
+        blocks.append(block)
+        total += len(block) + 2  # +2 for the "\n\n" join
+    return "\n\n".join(blocks)
 
 
 def ask(question: str, top_k: int = 5, generate: bool = True, rerank: bool = True) -> dict:
