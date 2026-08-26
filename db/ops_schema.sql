@@ -111,3 +111,65 @@ CREATE TABLE IF NOT EXISTS fuel_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS fuel_log_vessel_idx ON fuel_log (vessel_id, log_date);
+
+-- Procurement (purchase-to-pay) — every commercial ship-management platform
+-- surveyed (AMOS, ShipNet, BASSnet, DNV ShipManager) treats this as core,
+-- tied directly into the spare-parts catalog above.
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    id SERIAL PRIMARY KEY,
+    vessel_id INTEGER NOT NULL REFERENCES vessels(id) ON DELETE CASCADE,
+    equipment_id INTEGER REFERENCES equipment(id),
+    requested_by INTEGER REFERENCES users(id),
+    approved_by INTEGER REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'approved', 'ordered', 'received', 'cancelled')),
+    supplier TEXT,
+    items TEXT NOT NULL,
+    total_cost NUMERIC,
+    currency TEXT,
+    order_date DATE,
+    expected_delivery DATE,
+    received_date DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS purchase_orders_vessel_idx ON purchase_orders (vessel_id, status);
+
+-- Dry-docking — its own module in every platform surveyed, distinct from
+-- routine maintenance_jobs by scale/duration/yard involvement.
+CREATE TABLE IF NOT EXISTS drydock_events (
+    id SERIAL PRIMARY KEY,
+    vessel_id INTEGER NOT NULL REFERENCES vessels(id) ON DELETE CASCADE,
+    yard TEXT,
+    location TEXT,
+    status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'in_progress', 'completed', 'cancelled')),
+    planned_start DATE,
+    planned_end DATE,
+    actual_start DATE,
+    actual_end DATE,
+    scope_description TEXT,
+    total_cost NUMERIC,
+    currency TEXT,
+    coordinated_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS drydock_vessel_idx ON drydock_events (vessel_id, status);
+
+-- QHSE / safety management — near-miss and incident reporting deliberately
+-- has NO role restriction to add (see ops/auth.py): a no-blame reporting
+-- culture where anyone aboard can report is standard safety-management
+-- practice, not an oversight.
+CREATE TABLE IF NOT EXISTS safety_incidents (
+    id SERIAL PRIMARY KEY,
+    vessel_id INTEGER NOT NULL REFERENCES vessels(id) ON DELETE CASCADE,
+    incident_type TEXT NOT NULL CHECK (incident_type IN ('near_miss', 'incident', 'audit', 'inspection')),
+    severity TEXT CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    description TEXT NOT NULL,
+    reported_by INTEGER REFERENCES users(id),
+    incident_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    corrective_action TEXT,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+    closed_by INTEGER REFERENCES users(id),
+    description_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', description)) STORED,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS safety_tsv_idx ON safety_incidents USING gin (description_tsv);
+CREATE INDEX IF NOT EXISTS safety_vessel_idx ON safety_incidents (vessel_id, status);

@@ -22,6 +22,14 @@ PERMISSIONS = {
     "parts:add": {"master", "chief_engineer"},
     "maintenance:add": {"master", "chief_engineer", "engine_crew"},
     "fuel:add": {"master", "chief_engineer"},
+    "procurement:add": {"master", "chief_engineer", "shore_staff"},
+    "procurement:approve": {"master", "shore_staff"},
+    "drydock:add": {"master", "shore_staff"},
+    "safety:close": {"master", "shore_staff"},
+    # Deliberately NOT in this table: "safety:report". Near-miss/incident
+    # reporting is unrestricted on purpose — a no-blame reporting culture
+    # where anyone aboard can report is standard safety-management practice,
+    # not an oversight. See db/ops_schema.sql's comment on safety_incidents.
 }
 
 

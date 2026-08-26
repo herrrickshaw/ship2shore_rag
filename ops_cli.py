@@ -191,6 +191,101 @@ def cmd_fuel_list(args):
         print(f"#{f['id']}  {f['log_date']}  [{f['event_type']}]  {f['quantity_mt']}mt {f['fuel_type']}  ROB {f.get('rob_after_mt') or '-'}")
 
 
+# ---- procurement (purchase-to-pay) -----------------------------------------
+
+def cmd_procurement_add(args):
+    _authorize(args, "procurement:add")
+    vessel = _resolve_vessel(args.vessel)
+    actor = _actor(args)
+    fields = {
+        k: v
+        for k, v in {
+            "equipment_id": args.equipment_id,
+            "supplier": args.supplier,
+            "total_cost": args.cost,
+            "currency": args.currency,
+            "expected_delivery": args.expected_delivery,
+        }.items()
+        if v is not None
+    }
+    pid = store.add_purchase_order(vessel["id"], args.items, requested_by=actor["id"] if actor else None, **fields)
+    print(f"added purchase order #{pid} for {vessel['name']}: {args.items} (status: requested)")
+
+
+def cmd_procurement_list(args):
+    vessel = _resolve_vessel(args.vessel)
+    for po in store.list_purchase_orders(vessel["id"], status=args.status):
+        print(f"#{po['id']}  [{po['status']}]  {po['items']}  supplier={po.get('supplier') or '-'}  cost={po.get('total_cost') or '-'}")
+
+
+def cmd_procurement_approve(args):
+    _authorize(args, "procurement:approve")
+    actor = _actor(args)
+    store.approve_purchase_order(args.po_id, actor["id"] if actor else None)
+    print(f"purchase order #{args.po_id} approved")
+
+
+def cmd_procurement_status(args):
+    _authorize(args, "procurement:approve")
+    store.update_purchase_order_status(args.po_id, args.status)
+    print(f"purchase order #{args.po_id} status set to {args.status}")
+
+
+# ---- drydock_events -----------------------------------------------------------
+
+def cmd_drydock_add(args):
+    _authorize(args, "drydock:add")
+    vessel = _resolve_vessel(args.vessel)
+    actor = _actor(args)
+    fields = {
+        k: v
+        for k, v in {
+            "yard": args.yard,
+            "location": args.location,
+            "planned_start": args.start,
+            "planned_end": args.end,
+            "scope_description": args.scope,
+            "total_cost": args.cost,
+            "currency": args.currency,
+        }.items()
+        if v is not None
+    }
+    did = store.add_drydock_event(vessel["id"], coordinated_by=actor["id"] if actor else None, **fields)
+    print(f"added drydock event #{did} for {vessel['name']}")
+
+
+def cmd_drydock_list(args):
+    vessel = _resolve_vessel(args.vessel)
+    for d in store.list_drydock_events(vessel["id"]):
+        print(f"#{d['id']}  [{d['status']}]  {d.get('yard') or '-'}  {d.get('planned_start') or '-'} to {d.get('planned_end') or '-'}")
+
+
+# ---- safety_incidents (QHSE) ------------------------------------------------
+
+def cmd_safety_report(args):
+    # Deliberately unrestricted — see ops/auth.py's comment on "safety:report".
+    vessel = _resolve_vessel(args.vessel)
+    actor = _actor(args)
+    fields = {k: v for k, v in {"severity": args.severity}.items() if v is not None}
+    sid = store.add_safety_incident(
+        vessel["id"], args.incident_type, args.description, reported_by=actor["id"] if actor else None, **fields
+    )
+    print(f"reported {args.incident_type} #{sid} on {vessel['name']} (status: open)")
+
+
+def cmd_safety_list(args):
+    vessel = _resolve_vessel(args.vessel)
+    for s in store.list_safety_incidents(vessel["id"], status=args.status):
+        print(f"#{s['id']}  {s['incident_date']}  [{s['incident_type']}/{s['status']}]  {s['description']}")
+
+
+def cmd_safety_close(args):
+    _authorize(args, "safety:close")
+    actor = _actor(args)
+    store.close_safety_incident(args.incident_id, actor["id"] if actor else None, corrective_action=args.corrective_action)
+    print(f"safety incident #{args.incident_id} closed")
+
+
 def _add_user_flag(parser):
     parser.add_argument("--user", default=None, help="acting user's name (or set SHIP2SHORE_USER)")
 
@@ -314,3 +409,65 @@ def register(sub) -> None:
     p_list = fuel_sub.add_parser("list", help="list a vessel's fuel log, newest first")
     p_list.add_argument("vessel")
     p_list.set_defaults(func=cmd_fuel_list)
+
+    p = sub.add_parser("procurement", help="purchase-to-pay — orders tied to the EPC parts catalog")
+    proc_sub = p.add_subparsers(dest="procurement_command", required=True)
+    p_add = proc_sub.add_parser("add", help="request a purchase order")
+    p_add.add_argument("vessel")
+    p_add.add_argument("items", help="free text, e.g. \"PN-9001 Cylinder liner x2\"")
+    p_add.add_argument("--equipment-id", type=int, default=None)
+    p_add.add_argument("--supplier", default=None)
+    p_add.add_argument("--cost", type=float, default=None, help="total cost")
+    p_add.add_argument("--currency", default=None)
+    p_add.add_argument("--expected-delivery", default=None, help="YYYY-MM-DD")
+    _add_user_flag(p_add)
+    p_add.set_defaults(func=cmd_procurement_add)
+    p_list = proc_sub.add_parser("list", help="list a vessel's purchase orders")
+    p_list.add_argument("vessel")
+    p_list.add_argument("--status", default=None, choices=["requested", "approved", "ordered", "received", "cancelled"])
+    p_list.set_defaults(func=cmd_procurement_list)
+    p_approve = proc_sub.add_parser("approve", help="approve a requested purchase order")
+    p_approve.add_argument("po_id", type=int)
+    _add_user_flag(p_approve)
+    p_approve.set_defaults(func=cmd_procurement_approve)
+    p_status = proc_sub.add_parser("status", help="update a purchase order's status (e.g. ordered, received)")
+    p_status.add_argument("po_id", type=int)
+    p_status.add_argument("status", choices=["requested", "approved", "ordered", "received", "cancelled"])
+    _add_user_flag(p_status)
+    p_status.set_defaults(func=cmd_procurement_status)
+
+    p = sub.add_parser("drydock", help="dry-docking events — scheduling, yard, cost")
+    dd_sub = p.add_subparsers(dest="drydock_command", required=True)
+    p_add = dd_sub.add_parser("add", help="schedule a dry-docking event")
+    p_add.add_argument("vessel")
+    p_add.add_argument("--yard", default=None)
+    p_add.add_argument("--location", default=None)
+    p_add.add_argument("--start", default=None, help="planned start date (YYYY-MM-DD)")
+    p_add.add_argument("--end", default=None, help="planned end date (YYYY-MM-DD)")
+    p_add.add_argument("--scope", default=None, help="scope of work description")
+    p_add.add_argument("--cost", type=float, default=None)
+    p_add.add_argument("--currency", default=None)
+    _add_user_flag(p_add)
+    p_add.set_defaults(func=cmd_drydock_add)
+    p_list = dd_sub.add_parser("list", help="list a vessel's dry-docking events")
+    p_list.add_argument("vessel")
+    p_list.set_defaults(func=cmd_drydock_list)
+
+    p = sub.add_parser("safety", help="QHSE — near-miss/incident/audit/inspection reporting")
+    safety_sub = p.add_subparsers(dest="safety_command", required=True)
+    p_report = safety_sub.add_parser("report", help="report a near-miss, incident, audit, or inspection (no role restriction — anyone can report)")
+    p_report.add_argument("vessel")
+    p_report.add_argument("incident_type", choices=["near_miss", "incident", "audit", "inspection"])
+    p_report.add_argument("description")
+    p_report.add_argument("--severity", default=None, choices=["low", "medium", "high", "critical"])
+    _add_user_flag(p_report)
+    p_report.set_defaults(func=cmd_safety_report)
+    p_list = safety_sub.add_parser("list", help="list a vessel's safety reports, newest first")
+    p_list.add_argument("vessel")
+    p_list.add_argument("--status", default=None, choices=["open", "closed"])
+    p_list.set_defaults(func=cmd_safety_list)
+    p_close = safety_sub.add_parser("close", help="close a safety report with a corrective action")
+    p_close.add_argument("incident_id", type=int)
+    p_close.add_argument("--corrective-action", default=None)
+    _add_user_flag(p_close)
+    p_close.set_defaults(func=cmd_safety_close)

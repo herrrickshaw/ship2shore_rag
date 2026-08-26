@@ -111,6 +111,54 @@ CREATE TABLE IF NOT EXISTS fuel_log (
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vessel_id INTEGER NOT NULL REFERENCES vessels(id),
+    equipment_id INTEGER REFERENCES equipment(id),
+    requested_by INTEGER REFERENCES users(id),
+    approved_by INTEGER REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'requested',
+    supplier TEXT,
+    items TEXT NOT NULL,
+    total_cost REAL,
+    currency TEXT,
+    order_date TEXT,
+    expected_delivery TEXT,
+    received_date TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS drydock_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vessel_id INTEGER NOT NULL REFERENCES vessels(id),
+    yard TEXT,
+    location TEXT,
+    status TEXT NOT NULL DEFAULT 'planned',
+    planned_start TEXT,
+    planned_end TEXT,
+    actual_start TEXT,
+    actual_end TEXT,
+    scope_description TEXT,
+    total_cost REAL,
+    currency TEXT,
+    coordinated_by INTEGER REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS safety_incidents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vessel_id INTEGER NOT NULL REFERENCES vessels(id),
+    incident_type TEXT NOT NULL,
+    severity TEXT,
+    description TEXT NOT NULL,
+    reported_by INTEGER REFERENCES users(id),
+    incident_date TEXT NOT NULL DEFAULT CURRENT_DATE,
+    corrective_action TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    closed_by INTEGER REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -399,3 +447,125 @@ def list_fuel_log(vessel_id: int) -> list[dict]:
             (vessel_id,),
         )
         return _rows(cur, c.backend)
+
+
+# ---- purchase_orders (procurement) -----------------------------------------
+
+def add_purchase_order(vessel_id: int, items: str, requested_by: int | None = None, **fields) -> int:
+    cols = ["vessel_id", "items", "requested_by", *fields.keys()]
+    vals = (vessel_id, items, requested_by, *fields.values())
+    placeholders_pg = ", ".join(["%s"] * len(cols))
+    placeholders_lite = ", ".join(["?"] * len(cols))
+    col_list = ", ".join(cols)
+    with _Conn() as c:
+        cur = c.execute(
+            f"INSERT INTO purchase_orders ({col_list}) VALUES ({placeholders_pg}) RETURNING id",
+            f"INSERT INTO purchase_orders ({col_list}) VALUES ({placeholders_lite})",
+            vals,
+        )
+        return cur.fetchone()["id"] if c.backend != "sqlite" else cur.lastrowid
+
+
+def list_purchase_orders(vessel_id: int, status: str | None = None) -> list[dict]:
+    with _Conn() as c:
+        if status:
+            cur = c.execute(
+                "SELECT * FROM purchase_orders WHERE vessel_id = %s AND status = %s ORDER BY created_at DESC",
+                "SELECT * FROM purchase_orders WHERE vessel_id = ? AND status = ? ORDER BY created_at DESC",
+                (vessel_id, status),
+            )
+        else:
+            cur = c.execute(
+                "SELECT * FROM purchase_orders WHERE vessel_id = %s ORDER BY created_at DESC",
+                "SELECT * FROM purchase_orders WHERE vessel_id = ? ORDER BY created_at DESC",
+                (vessel_id,),
+            )
+        return _rows(cur, c.backend)
+
+
+def approve_purchase_order(po_id: int, approved_by: int | None) -> None:
+    with _Conn() as c:
+        c.execute(
+            "UPDATE purchase_orders SET status = 'approved', approved_by = %s WHERE id = %s",
+            "UPDATE purchase_orders SET status = 'approved', approved_by = ? WHERE id = ?",
+            (approved_by, po_id),
+        )
+
+
+def update_purchase_order_status(po_id: int, status: str) -> None:
+    with _Conn() as c:
+        c.execute(
+            "UPDATE purchase_orders SET status = %s WHERE id = %s",
+            "UPDATE purchase_orders SET status = ? WHERE id = ?",
+            (status, po_id),
+        )
+
+
+# ---- drydock_events ---------------------------------------------------------
+
+def add_drydock_event(vessel_id: int, **fields) -> int:
+    cols = ["vessel_id", *fields.keys()]
+    vals = (vessel_id, *fields.values())
+    placeholders_pg = ", ".join(["%s"] * len(cols))
+    placeholders_lite = ", ".join(["?"] * len(cols))
+    col_list = ", ".join(cols)
+    with _Conn() as c:
+        cur = c.execute(
+            f"INSERT INTO drydock_events ({col_list}) VALUES ({placeholders_pg}) RETURNING id",
+            f"INSERT INTO drydock_events ({col_list}) VALUES ({placeholders_lite})",
+            vals,
+        )
+        return cur.fetchone()["id"] if c.backend != "sqlite" else cur.lastrowid
+
+
+def list_drydock_events(vessel_id: int) -> list[dict]:
+    with _Conn() as c:
+        cur = c.execute(
+            "SELECT * FROM drydock_events WHERE vessel_id = %s ORDER BY planned_start DESC",
+            "SELECT * FROM drydock_events WHERE vessel_id = ? ORDER BY planned_start DESC",
+            (vessel_id,),
+        )
+        return _rows(cur, c.backend)
+
+
+# ---- safety_incidents (QHSE) ------------------------------------------------
+
+def add_safety_incident(vessel_id: int, incident_type: str, description: str, reported_by: int | None = None, **fields) -> int:
+    cols = ["vessel_id", "incident_type", "description", "reported_by", *fields.keys()]
+    vals = (vessel_id, incident_type, description, reported_by, *fields.values())
+    placeholders_pg = ", ".join(["%s"] * len(cols))
+    placeholders_lite = ", ".join(["?"] * len(cols))
+    col_list = ", ".join(cols)
+    with _Conn() as c:
+        cur = c.execute(
+            f"INSERT INTO safety_incidents ({col_list}) VALUES ({placeholders_pg}) RETURNING id",
+            f"INSERT INTO safety_incidents ({col_list}) VALUES ({placeholders_lite})",
+            vals,
+        )
+        return cur.fetchone()["id"] if c.backend != "sqlite" else cur.lastrowid
+
+
+def list_safety_incidents(vessel_id: int, status: str | None = None) -> list[dict]:
+    with _Conn() as c:
+        if status:
+            cur = c.execute(
+                "SELECT * FROM safety_incidents WHERE vessel_id = %s AND status = %s ORDER BY incident_date DESC",
+                "SELECT * FROM safety_incidents WHERE vessel_id = ? AND status = ? ORDER BY incident_date DESC",
+                (vessel_id, status),
+            )
+        else:
+            cur = c.execute(
+                "SELECT * FROM safety_incidents WHERE vessel_id = %s ORDER BY incident_date DESC",
+                "SELECT * FROM safety_incidents WHERE vessel_id = ? ORDER BY incident_date DESC",
+                (vessel_id,),
+            )
+        return _rows(cur, c.backend)
+
+
+def close_safety_incident(incident_id: int, closed_by: int | None, corrective_action: str | None = None) -> None:
+    with _Conn() as c:
+        c.execute(
+            "UPDATE safety_incidents SET status = 'closed', closed_by = %s, corrective_action = COALESCE(%s, corrective_action) WHERE id = %s",
+            "UPDATE safety_incidents SET status = 'closed', closed_by = ?, corrective_action = COALESCE(?, corrective_action) WHERE id = ?",
+            (closed_by, corrective_action, incident_id),
+        )

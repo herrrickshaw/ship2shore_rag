@@ -207,6 +207,9 @@ offline on a vessel, and it must not pretend to be bigger than it is.
 | `spare_parts` | EPC (Electronic Parts Catalog) — part numbers/stock tied to equipment | `cli.py parts add/list` |
 | `maintenance_jobs` | Repair/maintenance history — job type, description, running hours, parts used | `cli.py maintenance add/list` |
 | `fuel_log` | Bunkering/consumption/ROB events | `cli.py fuel add/list` |
+| `purchase_orders` | Procurement (purchase-to-pay) — status workflow, tied to the EPC parts catalog | `cli.py procurement add/list/approve/status` |
+| `drydock_events` | Dry-docking — yard, scope, planned/actual dates, cost | `cli.py drydock add/list` |
+| `safety_incidents` | QHSE — near-miss/incident/audit/inspection reports, open/closed | `cli.py safety report/list/close` |
 
 ### IAM — scoped to what a CLI tool actually needs
 

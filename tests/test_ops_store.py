@@ -71,3 +71,36 @@ def test_fuel_log(sqlite_store):
     entries = sqlite_store.list_fuel_log(vid)
     assert entries[0]["quantity_mt"] == 500.0
     assert entries[0]["event_type"] == "bunkering"
+
+
+def test_purchase_order_approval_workflow(sqlite_store):
+    vid = sqlite_store.add_vessel("MV Tester")
+    po_id = sqlite_store.add_purchase_order(vid, "PN-1 Fuel injector x2", supplier="MAN")
+    assert sqlite_store.list_purchase_orders(vid)[0]["status"] == "requested"
+
+    sqlite_store.approve_purchase_order(po_id, approved_by=None)
+    assert sqlite_store.list_purchase_orders(vid)[0]["status"] == "approved"
+
+    sqlite_store.update_purchase_order_status(po_id, "received")
+    orders = sqlite_store.list_purchase_orders(vid, status="received")
+    assert len(orders) == 1
+    assert orders[0]["id"] == po_id
+
+
+def test_drydock_event(sqlite_store):
+    vid = sqlite_store.add_vessel("MV Tester")
+    sqlite_store.add_drydock_event(vid, yard="Keppel Shipyard", planned_start="2027-03-01")
+    events = sqlite_store.list_drydock_events(vid)
+    assert events[0]["yard"] == "Keppel Shipyard"
+    assert events[0]["status"] == "planned"
+
+
+def test_safety_incident_report_and_close(sqlite_store):
+    vid = sqlite_store.add_vessel("MV Tester")
+    incident_id = sqlite_store.add_safety_incident(vid, "near_miss", "Loose grating", severity="medium")
+    open_incidents = sqlite_store.list_safety_incidents(vid, status="open")
+    assert len(open_incidents) == 1
+
+    sqlite_store.close_safety_incident(incident_id, closed_by=None, corrective_action="Grating re-secured")
+    closed = sqlite_store.list_safety_incidents(vid, status="closed")
+    assert closed[0]["corrective_action"] == "Grating re-secured"
