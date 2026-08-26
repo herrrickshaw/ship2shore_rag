@@ -32,8 +32,8 @@ README, committed and pushed.
 
 - [x] N7: everything committed and pushed to origin/main
   CHECK: cd /Users/umashankar/repos/ship2shore_rag && git status --short && git log origin/main..HEAD --oneline
-  EXPECT: git status has only PLAN.md/gates/ untracked (a deliberate driver decision, see below); git log shows the push succeeded
-  EVIDENCE: pending — final commit + push not yet run at the time this line was written; completing next.
+  EXPECT: both empty
+  EVIDENCE: `git push origin main` -> `52150a7..9ed5764  main -> main`. `git status --short` -> empty. `git log origin/main..HEAD --oneline` -> empty. Two commits this integration: 9390354 (lint tooling + test coverage + FTS5 fix, plus the leaves' code already merged into the working tree at that point) and 9ed5764 (driver-owned wiring: cli.py, CI whitelist, README/sources.yaml/.env.example, CHANGELOG, PLAN.md/gates/ as audit trail).
 
 <!--
 Branch gates exist because finished parts do not imply a finished whole.
