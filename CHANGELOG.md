@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — HTML sources in sources.yaml via Jina Reader
+
+### Added
+- **`type: html` entries in `ingest/sources.yaml`** — non-PDF public web
+  pages (port authority pages, IMO circulars, industry white papers) are
+  now genuinely supported, not just documented-but-broken (they'd have
+  silently mis-processed as PDFs before this). Fetched as clean markdown
+  via [Jina AI Reader](https://r.jina.ai/) (`fetch_url_via_reader()` in
+  `ingest/sources.py`, free tier, no API key) instead of raw HTML scraping,
+  rather than adding a heavier local dependency (e.g. Crawl4AI's
+  Playwright/Chromium requirement) for a repo that's stayed deliberately
+  light everywhere else — chosen specifically because nothing currently
+  ingested needs real JS rendering. Publish dates in Reader's response are
+  validated against the same strict ISO-8601 parse `retriever.py`'s
+  `_passage_date()` uses before being stored, rather than trusted as-is —
+  a malformed date from some page's metadata must be dropped at fetch
+  time, not surface as a crash in `ask --since ...` later.
+  Third-party-proxy caveat stated explicitly in both the code and
+  `sources.yaml`'s header comment: fine for public pages, not appropriate
+  for anything under restricted redistribution terms (use `--source file`
+  for those). Verified live end-to-end through `cli.py ingest`, not just
+  the fetcher in isolation: added the Maritime Labour Convention (a real,
+  previously-missing maritime-regulation topic) as the first `type: html`
+  entry — landed with 28 chunks, correct title/license, and a real
+  `published_at` extracted from the page's own metadata.
+
 ## [Unreleased] — 2026-08-26 — Close the remaining "Not yet done" gaps
 
 Orchestrated build (per the `unlazy` skill's Depth Tree method, gates-and-

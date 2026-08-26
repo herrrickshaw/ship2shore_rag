@@ -1,6 +1,12 @@
 import re
 
-from ingest.sources import DEFAULT_ARXIV_QUERIES, DEFAULT_WIKIPEDIA_TITLES, NTM_LINK_PATTERN
+from ingest import sources
+from ingest.sources import (
+    DEFAULT_ARXIV_QUERIES,
+    DEFAULT_WIKIPEDIA_TITLES,
+    NTM_LINK_PATTERN,
+    _extract_reader_published_at,
+)
 
 
 def test_default_wikipedia_titles_nonempty():
@@ -23,3 +29,54 @@ def test_ntm_link_pattern_matches_weekly_booklet_only():
     )
     matches = re.findall(NTM_LINK_PATTERN, html)
     assert matches == [("36wknm26.pdf", "2f715d5e-ffa1-44d4-93e4-0f7f322bf08f")]
+
+
+def test_extract_reader_published_at_valid_iso():
+    text = "Title: X\n\nPublished Time: 2024-03-15T12:00:00Z\n\nMarkdown Content:\n..."
+    assert _extract_reader_published_at(text) == "2024-03-15T12:00:00Z"
+
+
+def test_extract_reader_published_at_malformed_is_dropped_not_crashed():
+    # not ISO-8601 -- retriever.py's _passage_date() parses this strictly,
+    # so a bad date here must be dropped at fetch time, never stored, rather
+    # than surfacing as a crash later in `ask --since ...`.
+    text = "Published Time: Sun, 15 Jun 2025 not-a-real-date"
+    assert _extract_reader_published_at(text) is None
+
+
+def test_extract_reader_published_at_missing_header():
+    assert _extract_reader_published_at("no date header here at all") is None
+
+
+def test_fetch_pdf_sources_dispatches_html_type_to_reader(tmp_path, monkeypatch):
+    config = tmp_path / "sources.yaml"
+    config.write_text("""
+pdf_sources:
+  - url: "https://example.com/report.pdf"
+    title: "A PDF"
+    license: "public domain"
+  - url: "https://example.com/page"
+    title: "An HTML page"
+    license: "public domain"
+    type: html
+""")
+    pdf_calls = []
+    reader_calls = []
+    monkeypatch.setattr(
+        sources,
+        "fetch_pdf",
+        lambda url, title=None, license=None: pdf_calls.append(url)
+        or {"source": "pdf", "url": url},
+    )
+    monkeypatch.setattr(
+        sources,
+        "fetch_url_via_reader",
+        lambda url, title=None, license=None: reader_calls.append(url)
+        or {"source": "pdf", "url": url},
+    )
+
+    docs = sources.fetch_pdf_sources(str(config))
+
+    assert pdf_calls == ["https://example.com/report.pdf"]
+    assert reader_calls == ["https://example.com/page"]
+    assert len(docs) == 2

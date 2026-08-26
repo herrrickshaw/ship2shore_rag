@@ -1,6 +1,15 @@
 # Curate additional PDF/URL literature here. Only add sources you have the
 # right to ingest (public domain, freely licensed, or your own documents).
 #
+# Entries are PDFs by default (fetched with pypdf, entirely local). Add
+# `type: html` for a non-PDF web page instead — those are fetched as clean
+# markdown via Jina AI Reader (r.jina.ai, free tier, no API key) rather than
+# raw HTML scraping, future-proofing this file for port authority pages,
+# IMO circulars, and industry white papers that aren't PDFs. That routes
+# the URL through Jina's servers, which is fine for public pages but NOT
+# appropriate for anything under restricted redistribution terms — use
+# `--source file` for those instead, which never leaves this machine.
+#
 # UNCTAD's annual "Review of Maritime Transport" is published openly:
 # https://unctad.org/publication/review-maritime-transport-2024
 # Add the direct PDF link(s) you want ingested below.
@@ -63,3 +72,12 @@ pdf_sources:
     license: "arXiv non-exclusive license"
   # https://www.mdpi.com/1424-8220/26/4/1227 — 403'd on fetch (couldn't
   # verify title/license), skipped rather than guessed.
+
+  # type: html example — not a PDF, fetched via Jina Reader (see header
+  # comment above). Distinct from the "MARPOL" article already in
+  # DEFAULT_WIKIPEDIA_TITLES (ingest/sources.py) — this is genuinely new
+  # content, not a duplicate.
+  - url: "https://en.wikipedia.org/wiki/Maritime_Labour_Convention"
+    title: "Maritime Labour Convention"
+    license: "CC BY-SA 4.0"
+    type: html

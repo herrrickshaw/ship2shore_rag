@@ -9,6 +9,7 @@ import io
 import re
 import time
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 import requests
 import yaml
@@ -25,6 +26,8 @@ UKHO_NTM_DOWNLOAD = "https://msi.admiralty.co.uk/NoticesToMariners/DownloadFile"
 NTSB_CAROL_BASE = "https://data.ntsb.gov/carol-main-public"
 NTSB_REPORT_BASE = "https://www.ntsb.gov/investigations/AccidentReports/Reports"
 NTSB_REPORT_NUMBER_RE = re.compile(r"^[A-Z]{2,5}\d{2,6}$")
+JINA_READER_BASE = "https://r.jina.ai/"
+READER_PUBLISHED_RE = re.compile(r"^Published Time:\s*(.+)$", re.MULTILINE)
 # e.g. DownloadFile?fileName=36wknm26.pdf&amp;batchId=<uuid>&amp;mimeType=... — matches
 # only the main weekly booklet ("wknm"), not the per-chart correction PDFs also
 # listed on the same page.
@@ -355,13 +358,72 @@ def fetch_pdf(url: str, title: str | None = None, license: str | None = None) ->
     }
 
 
+def fetch_url_via_reader(
+    url: str, title: str | None = None, license: str | None = None
+) -> dict | None:
+    """Fetches an arbitrary public HTML page as clean markdown via Jina AI
+    Reader (r.jina.ai) instead of raw scraping — future-proofs sources.yaml
+    for HTML sources (port authority pages, IMO circulars, industry white
+    papers) that fetch_pdf()'s pypdf extraction can't handle, since it isn't
+    a PDF. Free tier, no API key. Routes the URL through Jina's servers,
+    which is fine for public web pages but NOT appropriate for licensed/
+    restricted documents — use `--source file` for those instead, which
+    never leaves this machine."""
+    resp = None
+    last_error = None
+    for attempt, backoff in enumerate((0, 5, 20)):
+        if backoff:
+            time.sleep(backoff)
+        try:
+            resp = requests.get(f"{JINA_READER_BASE}{url}", headers=HEADERS, timeout=60)
+            resp.raise_for_status()
+            break
+        except requests.exceptions.RequestException as e:
+            last_error = e
+            resp = None
+    if resp is None:
+        raise last_error
+    text = resp.text
+    if not text.strip():
+        return None
+    return {
+        "source": "pdf",  # same sources.yaml-curated bucket as fetch_pdf(), just a different underlying fetch mechanism
+        "url": url,
+        "title": title or url.rsplit("/", 1)[-1],
+        "text": text,
+        "license": license or "unspecified — verify before redistribution",
+        "published_at": _extract_reader_published_at(text),
+    }
+
+
+def _extract_reader_published_at(text: str) -> str | None:
+    """Jina Reader's "Published Time:" header line isn't guaranteed to be
+    ISO-8601 (it's whatever the source page's own metadata says) — but
+    retriever.py's _passage_date() parses published_at with the strict
+    datetime.fromisoformat(), same as arxiv/maib's clean ISO strings expect.
+    Validate here rather than downstream, so a malformed date from some
+    page's metadata can never surface as a crash in `ask --since ...` later
+    — worth losing an occasional date to a parse failure, not worth a
+    retrieval-time crash for it."""
+    match = READER_PUBLISHED_RE.search(text)
+    if not match:
+        return None
+    raw = match.group(1).strip()
+    try:
+        datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return raw
+
+
 def fetch_pdf_sources(config_path: str) -> list[dict]:
     with open(config_path) as f:
         cfg = yaml.safe_load(f) or {}
     out = []
     for entry in cfg.get("pdf_sources", []):
+        fetcher = fetch_url_via_reader if entry.get("type") == "html" else fetch_pdf
         try:
-            doc = fetch_pdf(entry["url"], entry.get("title"), entry.get("license"))
+            doc = fetcher(entry["url"], entry.get("title"), entry.get("license"))
         except Exception as e:
             print(f"  skipping {entry['url']}: {type(e).__name__}: {e}")
             continue

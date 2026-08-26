@@ -178,11 +178,17 @@ academic RAG sub-area, well ahead of commercial deployment in the same domain.
 
 Edit `ingest/sources.yaml` — add any publicly accessible PDF or HTML URL (IMO
 circulars that are public, port authority reports, MARAD/UNCTAD publications,
-industry white papers you have the right to ingest). Run
-`python3 cli.py ingest --source pdf --config ingest/sources.yaml` to pull them in.
-Respect each source's license/terms — this project only ingests sources that are
-freely and legally accessible; it does not scrape paywalled or ToS-restricted
-sites.
+industry white papers you have the right to ingest). Entries are PDFs by
+default (`pypdf`, entirely local); add `type: html` for a non-PDF page —
+those are fetched as clean markdown via [Jina AI
+Reader](https://r.jina.ai/) (free tier, no API key) instead of raw HTML
+scraping. Run `python3 cli.py ingest --source pdf --config
+ingest/sources.yaml` to pull them in. Respect each source's license/terms —
+this project only ingests sources that are freely and legally accessible;
+it does not scrape paywalled or ToS-restricted sites. `type: html` routes
+the URL through Jina's servers, which is fine for public pages but not
+appropriate for anything under restricted redistribution terms — use
+`--source file` for those instead (never leaves this machine).
 
 ## Shipboard deployment
 
