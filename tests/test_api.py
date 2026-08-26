@@ -106,3 +106,27 @@ def test_procurement_approval_workflow(client):
 def test_unknown_vessel_returns_404(client):
     resp = client.get("/vessels/does-not-exist")
     assert resp.status_code == 404
+
+
+def test_duplicate_imo_returns_clean_409_not_raw_500(client):
+    client.post("/users", json={"name": "Captain Ahab", "role": "master"})
+    client.post("/vessels", json={"name": "MV One", "imo_number": "1234567"}, headers={"X-User": "Captain Ahab"})
+    resp = client.post(
+        "/vessels", json={"name": "MV Two", "imo_number": "1234567"}, headers={"X-User": "Captain Ahab"}
+    )
+    assert resp.status_code == 409
+    assert "detail" in resp.json()
+
+
+def test_safety_close_with_no_body_still_authorizes(client):
+    client.post("/users", json={"name": "Captain Ahab", "role": "master"})
+    client.post("/vessels", json={"name": "MV Test"}, headers={"X-User": "Captain Ahab"})
+    incident = client.post(
+        "/vessels/MV Test/safety",
+        json={"incident_type": "near_miss", "description": "Loose grating"},
+    ).json()
+    # No JSON body at all — this used to 422 (missing field) instead of running
+    # the role check, since all of CloseIncidentIn's fields are optional and
+    # FastAPI still required *a* body before the fix.
+    resp = client.post(f"/safety/{incident['id']}/close", headers={"X-User": "Captain Ahab"})
+    assert resp.status_code == 200

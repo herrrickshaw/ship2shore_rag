@@ -15,11 +15,14 @@ surface only, matching what was asked for.
 """
 import os
 import secrets
+import sqlite3
 from datetime import date
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+import psycopg
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ops import store
@@ -47,6 +50,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(psycopg.errors.UniqueViolation)
+@app.exception_handler(sqlite3.IntegrityError)
+def handle_unique_violation(_request: Request, _exc: Exception) -> JSONResponse:
+    # Without this, a duplicate (e.g. an IMO number or a part number already
+    # registered) surfaces as a raw, unhandled 500 with an empty body — bad
+    # for any client, and confusing to debug. A clean 409 with a real message
+    # is what a duplicate-key conflict actually is.
+    return JSONResponse(status_code=409, content={"detail": "a record with this unique value already exists"})
 
 Role = Literal["master", "chief_engineer", "officer", "deck_crew", "engine_crew", "shore_staff"]
 
@@ -333,7 +346,7 @@ class DrydockIn(BaseModel):
 
 
 @app.post("/vessels/{name_or_imo}/drydock")
-def create_drydock_event(name_or_imo: str, body: DrydockIn, user: dict | None = Depends(current_user)):
+def create_drydock_event(name_or_imo: str, body: DrydockIn = DrydockIn(), user: dict | None = Depends(current_user)):
     authorize(user, "drydock:add")
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude_none=True)
@@ -375,7 +388,7 @@ class CloseIncidentIn(BaseModel):
 
 
 @app.post("/safety/{incident_id}/close")
-def close_safety_incident(incident_id: int, body: CloseIncidentIn, user: dict | None = Depends(current_user)):
+def close_safety_incident(incident_id: int, body: CloseIncidentIn = CloseIncidentIn(), user: dict | None = Depends(current_user)):
     authorize(user, "safety:close")
     store.close_safety_incident(incident_id, _actor_id(user), corrective_action=body.corrective_action)
     return {"ok": True}
