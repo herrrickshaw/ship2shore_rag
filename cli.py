@@ -3,7 +3,7 @@ import argparse
 from db.init_db import main as init_db
 from ingest.ingest import ingest_documents
 from ingest.loaders import fetch_local_files
-from ingest.sources import fetch_arxiv, fetch_arxiv_seed, fetch_maib, fetch_pdf_sources, fetch_wikipedia
+from ingest.sources import fetch_arxiv, fetch_arxiv_seed, fetch_maib, fetch_ntm, fetch_pdf_sources, fetch_wikipedia
 from rag.pipeline import ask
 
 
@@ -20,6 +20,8 @@ def cmd_ingest(args) -> None:
         docs = fetch_pdf_sources(args.config)
     elif args.source == "maib":
         docs = fetch_maib(args.max_results)
+    elif args.source == "ntm":
+        docs = fetch_ntm(args.max_results)
     elif args.source == "file":
         if not args.path:
             raise SystemExit("--source file requires --path (a glob, e.g. \"./docs/**/*.pdf\")")
@@ -65,7 +67,7 @@ def main() -> None:
     sub.add_parser("init-db").set_defaults(func=cmd_init_db)
 
     p_ingest = sub.add_parser("ingest")
-    p_ingest.add_argument("--source", required=True, choices=["arxiv", "wikipedia", "pdf", "maib", "file"])
+    p_ingest.add_argument("--source", required=True, choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "file"])
     p_ingest.add_argument("--query", default=None, help="arxiv search query (omit to run the built-in seed queries)")
     p_ingest.add_argument("--max-results", type=int, default=20)
     p_ingest.add_argument("--config", default="ingest/sources.yaml")

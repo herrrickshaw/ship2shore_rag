@@ -113,6 +113,7 @@ terms (vessel names, regulation numbers, IMO numbers) that embeddings can miss.
 | `arxiv` | Seed queries (below) if `--query` is omitted, else your own search | arXiv non-exclusive license |
 | `wikipedia` | A curated list of maritime-topic articles | CC BY-SA 4.0 |
 | `maib` | UK Marine Accident Investigation Branch reports, discovered via `gov.uk/maib-reports.atom` | Open Government Licence v3.0 |
+| `ntm` | UKHO ADMIRALTY weekly Notices to Mariners bulletin (the main booklet, not the per-chart correction PDFs) | UKHO/ADMIRALTY — free to download for navigational use; verify terms before redistribution |
 | `pdf` | Anything in `ingest/sources.yaml` — seeded with NTSB marine accident reports | varies; NTSB reports are U.S. government works (public domain, 17 U.S.C. §105) |
 | `file` | Your own local files — see `--path` above | whatever license the file itself carries — verify before ingesting |
 
@@ -121,6 +122,23 @@ private JS API) — report URLs there are curated by hand. Find more at
 [data.ntsb.gov/carol-main-public](https://data.ntsb.gov/carol-main-public/basic-search)
 (Mode = Marine); report PDFs live at a predictable path,
 `ntsb.gov/investigations/AccidentReports/Reports/MIR####.pdf`.
+
+UKHO's weekly Notices to Mariners page (`msi.admiralty.co.uk/NoticesToMariners/Weekly`)
+issues a fresh download token per page load, so `fetch_ntm()` is a two-step
+fetch (load the index page, then download using that token) rather than a
+stable feed — and the download itself has been observed to intermittently
+drop mid-transfer from this network, which is why `fetch_pdf()` now retries
+with backoff (see `ingest/sources.py`).
+
+**Formats with no public source to crawl.** DNV's class rules (RU-SHIP) are
+free and public but distributed only as whole-edition ZIP archives, not
+individually crawlable chapter links — download an edition from
+[rules.dnv.com](https://rules.dnv.com/servicedocuments/dnvpm/packages?category=rulesship),
+extract it, and ingest the PDFs you want with `--source file`. PMS (planned
+maintenance system) manuals, SIRE 2.0/CDI vetting reports, and statutory
+certificates (SOLAS/MARPOL/ISM/ISPS) are per-vessel/per-company private
+documents by nature — there is no public corpus of these to fetch, so
+`--source file` is the only ingestion path for them, by design.
 
 `ingest/sources.py:DEFAULT_ARXIV_QUERIES` covers general shipping/logistics
 literature *and* casualty/accident-analysis literature specifically (root cause

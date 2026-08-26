@@ -19,6 +19,12 @@ HEADERS = {"User-Agent": USER_AGENT}
 ARXIV_API = "http://export.arxiv.org/api/query"
 WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 MAIB_FEED = "https://www.gov.uk/maib-reports.atom"
+UKHO_NTM_WEEKLY = "https://msi.admiralty.co.uk/NoticesToMariners/Weekly"
+UKHO_NTM_DOWNLOAD = "https://msi.admiralty.co.uk/NoticesToMariners/DownloadFile"
+# e.g. DownloadFile?fileName=36wknm26.pdf&amp;batchId=<uuid>&amp;mimeType=... — matches
+# only the main weekly booklet ("wknm"), not the per-chart correction PDFs also
+# listed on the same page.
+NTM_LINK_PATTERN = r"DownloadFile\?fileName=(\d+wknm\d+\.pdf)&amp;batchId=([\w-]+)"
 
 DEFAULT_ARXIV_QUERIES = [
     "container shipping logistics",
@@ -185,9 +191,51 @@ def fetch_maib(max_results: int = 30) -> list[dict]:
     return out
 
 
-def fetch_pdf(url: str, title: str | None = None, license: str | None = None) -> dict | None:
-    resp = requests.get(url, headers=HEADERS, timeout=60)
+def fetch_ntm(max_results: int = 10) -> list[dict]:
+    """UKHO ADMIRALTY weekly Notices to Mariners — the current week's main
+    bulletin booklet only (not the hundreds of individual per-chart correction
+    PDFs also listed on the same page, which are numeric/geometric corrections,
+    not text literature). Freely downloadable, no login — UKHO generates a
+    fresh batchId token per page load that the download URL must reuse, so
+    this is a two-step fetch (index page, then each PDF) rather than a stable
+    feed like MAIB's."""
+    resp = requests.get(UKHO_NTM_WEEKLY, headers=HEADERS, timeout=30)
     resp.raise_for_status()
+    matches = re.findall(NTM_LINK_PATTERN, resp.text)[:max_results]
+
+    out = []
+    for filename, batch_id in matches:
+        url = (
+            f"{UKHO_NTM_DOWNLOAD}?fileName={filename}&batchId={batch_id}"
+            "&mimeType=application%2Fpdf&frequency=Weekly"
+        )
+        doc = fetch_pdf(
+            url,
+            title=f"ADMIRALTY Notices to Mariners — Weekly Edition ({filename})",
+            license="UKHO/ADMIRALTY — freely downloadable for navigational use; verify terms before redistribution",
+        )
+        if doc:
+            doc["source"] = "ntm"
+            out.append(doc)
+        time.sleep(0.5)
+    return out
+
+
+def fetch_pdf(url: str, title: str | None = None, license: str | None = None) -> dict | None:
+    resp = None
+    last_error = None
+    for attempt, backoff in enumerate((0, 5, 15)):
+        if backoff:
+            time.sleep(backoff)
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=90)
+            resp.raise_for_status()
+            break
+        except requests.exceptions.RequestException as e:
+            last_error = e
+            resp = None
+    if resp is None:
+        raise last_error
     reader = PdfReader(io.BytesIO(resp.content))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     if not text.strip():

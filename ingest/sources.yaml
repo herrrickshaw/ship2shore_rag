@@ -12,6 +12,21 @@
 # Find more at https://data.ntsb.gov/carol-main-public/basic-search
 # (Mode = Marine) — report PDFs live at a stable, predictable path:
 # https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR####.pdf
+#
+# DNV class rules (RU-SHIP) are free and public at rules.dnv.com, but
+# distributed only as whole-edition ZIP archives (hundreds of PDFs each), not
+# individually crawlable chapter links — see:
+# https://rules.dnv.com/servicedocuments/dnvpm/packages?category=rulesship
+# To use a specific chapter: download the edition ZIP yourself, extract it,
+# then ingest the PDFs you want with `cli.py ingest --source file --path`
+# rather than adding them here.
+#
+# Some formats genuinely have no public source to crawl at all — they're
+# per-vessel/per-company private documents by nature, not published
+# literature: PMS (planned maintenance system) technical manuals, SIRE 2.0 /
+# CDI vetting inspection reports, and statutory certificates (SOLAS/MARPOL/
+# ISM/ISPS). Ingest your own copies of these via `--source file` — there is
+# no fetcher for them here because there is nothing public to fetch.
 
 pdf_sources:
   - url: "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2540.pdf"
