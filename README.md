@@ -180,6 +180,11 @@ is a pure C extension with no server process, and the embedding model
 (`all-MiniLM-L6-v2`) is ~90MB and runs on CPU, so the whole retrieval path fits
 comfortably on a low-power shipboard PC.
 
+A ready-to-copy snapshot (with checksum and corpus composition) is committed
+at [`snapshots/`](snapshots/README.md) — a real vessel deployment would
+generate its own via `export-sqlite` rather than rely on a committed one, but
+it's there as a working example and for quick testing.
+
 ## Not yet done
 
 - No web UI — CLI only.
