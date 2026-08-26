@@ -1,0 +1,6 @@
+# Slim dependency set for the api.py container — just what api.py + ops/
+# actually import. The full requirements.txt (RAG ingestion: sentence-
+# transformers/torch, pypdf, etc.) isn't needed to serve the operations API.
+fastapi>=0.115
+uvicorn>=0.32
+psycopg[binary]>=3.1

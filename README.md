@@ -276,10 +276,21 @@ name as an `X-User` header instead of `--user`; unauthenticated requests are
 treated as no user (denied on any restricted action, same as the CLI with no
 `--user`/`SHIP2SHORE_USER` set).
 
+**`X-User` is attribution, not authentication** — a self-reported name with
+nothing cryptographic behind it, which is fine for a trusted local CLI but
+not for an API reachable from the internet. The actual access gate is
+`X-API-Key`: every request needs a matching key. If `API_KEY` isn't set in
+the environment, one is generated and printed once at startup — the API is
+never silently open. Set your own `API_KEY` before deploying anywhere public,
+and share it only with whoever should be able to use the app.
+
 ```bash
 python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+export API_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(24))")
 uvicorn api:app --reload --port 8010
-# interactive docs at http://localhost:8010/docs
+# interactive docs at http://localhost:8010/docs — but /docs itself also
+# requires X-API-Key on every call it makes, so use "Authorize" in the UI
+curl -H "X-API-Key: $API_KEY" http://localhost:8010/vessels
 ```
 
 Endpoints mirror the CLI's resource shape — `POST/GET /vessels`,
@@ -287,6 +298,27 @@ Endpoints mirror the CLI's resource shape — `POST/GET /vessels`,
 `POST /procurement/{id}/approve`, `POST /safety/{id}/close`, etc. — see
 `/docs` for the full interactive list, or `api.py` directly (it's one file,
 organized in the same order as `ops_cli.py`).
+
+**Container image**: `Dockerfile` + `requirements-api.txt` build a slim image
+(just `api.py` + `ops/` — none of the RAG-ingestion side's heavy deps like
+sentence-transformers/torch). `.github/workflows/docker.yml` builds and
+pushes it to `ghcr.io/<owner>/ship2shore_rag/ops-api` on every push to `main`
+that touches the API code, so a deployable public image always exists —
+independent of whether the API itself is running anywhere yet:
+
+```bash
+docker pull ghcr.io/herrrickshaw/ship2shore_rag/ops-api:latest
+docker run -p 8010:8010 -e API_KEY="$API_KEY" -e DATABASE_URL="$DATABASE_URL" ghcr.io/herrrickshaw/ship2shore_rag/ops-api:latest
+```
+
+**Not yet done: actually running this somewhere public.** The image is
+publishable and pullable; nothing hosts and runs it continuously with a
+public URL and a publicly reachable Postgres yet. That needs a hosting
+account (Fly.io, Render, a VPS, etc. — this repo has no CLI/credentials for
+any of those) and a reachable Postgres (the local one on `:5433` isn't
+reachable from the internet either). Both are real decisions with real cost
+implications that belong to whoever's paying for them, not something to
+default into.
 
 **Deployment caveat, stated plainly:** this only listens on `127.0.0.1` by
 default and isn't deployed anywhere public. A frontend hosted elsewhere (e.g.

@@ -4,11 +4,17 @@ API, for a frontend (e.g. built on Lovable) to consume. Uses the exact same
 IAM as the CLI (ops/auth.py) — the acting user is passed as `X-User` header,
 looked up in the `users` table, and role-checked before restricted actions.
 
+`X-User` is attribution, not authentication — it's a self-reported name with
+no secret behind it, exactly like `--user` on the CLI. That's fine for a
+trusted local CLI; it is NOT fine for an API reachable from the public
+internet, where anyone could claim to be "Captain Ahab". API_KEY (below) is
+the actual access gate for deployment — see README "Operations module API".
+
 Deliberately does NOT wrap rag/pipeline.py (`ask`) — this is the ops-data
-surface only, matching what was asked for. See README "Operations module API"
-for endpoints, auth, and — importantly — the deployment caveat: this needs to
-be reachable from wherever the frontend runs, which localhost is not.
+surface only, matching what was asked for.
 """
+import os
+import secrets
 from datetime import date
 from typing import Literal
 
@@ -19,7 +25,22 @@ from pydantic import BaseModel
 from ops import store
 from ops.auth import AuthError, require_role
 
-app = FastAPI(title="ship2shore_rag operations API", version="0.1.0")
+# Shared-secret gate for the whole API. If API_KEY isn't set, one is generated
+# at startup and printed once — the API is never silently open. Set your own
+# API_KEY before deploying anywhere reachable from the internet, and share it
+# only with whoever should be able to use the app.
+API_KEY = os.environ.get("API_KEY") or secrets.token_urlsafe(24)
+if not os.environ.get("API_KEY"):
+    print(f"API_KEY not set — generated one for this run: {API_KEY}")
+    print("Set API_KEY in your environment to persist it across restarts.")
+
+
+def verify_api_key(x_api_key: str | None = Header(default=None)) -> None:
+    if not secrets.compare_digest(x_api_key or "", API_KEY):
+        raise HTTPException(status_code=401, detail="missing or invalid X-API-Key")
+
+
+app = FastAPI(title="ship2shore_rag operations API", version="0.1.0", dependencies=[Depends(verify_api_key)])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten to your frontend's origin before any real deployment

@@ -17,9 +17,19 @@ def client(monkeypatch):
     os.remove(path)
     monkeypatch.setattr(store, "STORAGE_BACKEND", "sqlite")
     monkeypatch.setattr(store, "OPS_SQLITE_PATH", path)
-    yield TestClient(api.app)
+    yield TestClient(api.app, headers={"X-API-Key": api.API_KEY})
     if os.path.exists(path):
         os.remove(path)
+
+
+def test_missing_api_key_denied(client):
+    resp = client.get("/vessels", headers={"X-API-Key": ""})
+    assert resp.status_code == 401
+
+
+def test_wrong_api_key_denied(client):
+    resp = client.get("/vessels", headers={"X-API-Key": "wrong-key"})
+    assert resp.status_code == 401
 
 
 def test_vessel_add_denied_for_deck_crew(client):
