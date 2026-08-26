@@ -11,4 +11,6 @@ openpyxl>=3.1     # local .xlsx ingestion (ingest/loaders.py)
 python-pptx>=1.0  # local .pptx ingestion (ingest/loaders.py)
 pyyaml>=6.0
 anthropic>=0.34  # optional: only used by `ask` when ANTHROPIC_API_KEY is set
+fastapi>=0.115   # api.py — REST wrapper around ops/store.py
+uvicorn>=0.32
 pytest>=8.0

@@ -268,6 +268,35 @@ being written to at sea, and conflating "distributed snapshot" with "source
 of truth being written to" would be a real design mistake, not a simplification.
 There's no sync-back-to-shore mechanism yet (see below).
 
+### REST API
+
+`api.py` is a FastAPI wrapper around `ops/store.py` — everything the CLI does,
+as HTTP, for a frontend to call. Same IAM as the CLI: pass the acting user's
+name as an `X-User` header instead of `--user`; unauthenticated requests are
+treated as no user (denied on any restricted action, same as the CLI with no
+`--user`/`SHIP2SHORE_USER` set).
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+uvicorn api:app --reload --port 8010
+# interactive docs at http://localhost:8010/docs
+```
+
+Endpoints mirror the CLI's resource shape — `POST/GET /vessels`,
+`POST/GET /vessels/{name_or_imo}/log`, `POST/GET /equipment/{id}/parts`,
+`POST /procurement/{id}/approve`, `POST /safety/{id}/close`, etc. — see
+`/docs` for the full interactive list, or `api.py` directly (it's one file,
+organized in the same order as `ops_cli.py`).
+
+**Deployment caveat, stated plainly:** this only listens on `127.0.0.1` by
+default and isn't deployed anywhere public. A frontend hosted elsewhere (e.g.
+on Lovable) cannot reach `localhost` on your machine — for that to work, this
+API needs to run somewhere with a public URL (a small VM, Fly.io, Render,
+etc.), with `DATABASE_URL` pointed at a reachable Postgres and CORS
+(`allow_origins` in `api.py`) tightened to the actual frontend origin instead
+of `*`. That deployment step isn't done yet — running it locally is enough
+for development and for driving a frontend that also runs locally.
+
 ### Honest scope
 
 - **Not multi-vessel fleet software.** Nothing here aggregates across
