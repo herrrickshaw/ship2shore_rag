@@ -8,3 +8,4 @@ __pycache__/
 .DS_Store
 /ship2shore.sqlite3
 graphify-out/
+warehouse/ship_telemetry.duckdb

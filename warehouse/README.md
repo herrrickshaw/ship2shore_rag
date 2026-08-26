@@ -4,87 +4,84 @@ A separate concern from everything else in this repo: the Postgres `ops`
 module and the RAG literature corpus are both low-frequency, structured
 data. This is the opposite shape — potentially thousands of sensor readings
 per vessel per day (engine RPM, fuel flow, exhaust temp, shaft power, GPS
-position) — the kind of write-heavy, mostly-append workload Cassandra is
-built for and Postgres is not.
+position) — write-heavy and mostly-append.
 
 ```
-                                    +--> sensor_readings      (raw, lake)
-producer.py --(JSON)--> Kafka --> Flink --> position_reports    (raw, lake)
-                                    +--> sensor_minute_aggregates (warehouse)
+producer.py --(JSON)--> Kafka --> duckdb_writer.py --> ship_telemetry.duckdb
+                                                          - sensor_readings        (raw, lake)
+                                                          - position_reports       (raw, lake)
+                                                          - sensor_minute_aggregates (SQL view, warehouse)
 ```
 
-One Flink job (a `StatementSet` — see `flink_job.py`), reading each Kafka
-topic once, fanning out to three Cassandra sinks: two raw passthroughs and
-one 1-minute tumbling-window aggregation. Not three separate jobs each
-re-consuming the topic from scratch.
+- **Kafka** — the message bus. KRaft mode (no separate ZooKeeper). Simulates
+  a realistic ingest path (decoupled producer/consumer, replay from offset)
+  without pretending this needs to survive a broker outage.
+- **DuckDB** — the lake *and* the warehouse: one embedded file, no server.
+  `sensor_readings` / `position_reports` are the raw lake tables;
+  `sensor_minute_aggregates` is a SQL view (`time_bucket` + `GROUP BY`) over
+  the raw table — no separate aggregation job, computed at query time.
 
-- **Kafka** — the message bus. KRaft mode (no separate ZooKeeper — Kafka 3.x+
-  doesn't need it, and it's meaningfully lighter for a single-node dev setup).
-- **Flink** — the stream processor, doing both jobs at once: raw passthrough
-  (nothing is lost even before any aggregation) and 1-minute avg/min/max/count
-  per vessel per sensor.
-- **Cassandra** — the lake/warehouse. `sensor_readings` and
-  `position_reports` are the lake (raw, as-received); `sensor_minute_aggregates`
-  is the warehouse side (pre-aggregated, fast to query).
+## Why DuckDB, not Cassandra/Flink
+
+The original version of this ran Kafka + Flink + Cassandra: four JVM
+containers, ~4.5GB RAM budget, and a real dead end — Flink's official
+Cassandra connector (`flink-connector-cassandra`) has no Table API/SQL
+factory (verified by inspecting the JAR's `META-INF/services` — no
+`org.apache.flink.table.factories.Factory` registration), so the natural
+`CREATE TABLE ... WITH ('connector' = 'cassandra', ...)` sink doesn't exist
+to use. Working around that meant a DataStream-API job with a hand-written
+Python sink function, on top of memory tuning that had already been fought
+once (Cassandra OOMing at 768m heap, Flink refusing to start under ~768m
+process size for JVM-overhead reasons).
+
+None of that complexity is buying anything here. Every other repo in this
+account that accumulates readings over time and queries them
+(`global-market-data`, `global-stock-screener`, `agri-commodity-tracker`,
+`market-correlation-matrices`) uses a plain embedded file — DuckDB or
+Parquet, no server, no cluster, no daemon to keep running or resource-tune —
+and there's no reason a single-vessel-simulator demo on one machine should
+be the exception. Kafka stays (it's genuinely demonstrating a real ingest
+pattern, and it's one lightweight container); Cassandra and Flink are gone.
 
 ## Running it
-
-This is genuinely heavy — four JVM-based containers (Kafka, Cassandra, Flink
-jobmanager + taskmanager). `docker-compose.yml` caps each service's memory
-(Kafka 512MB, Cassandra 2GB, each Flink node 1GB — roughly 4.5GB total; the
-first, lower memory budget this project tried made Cassandra crash outright
-and made Flink fail to start at all, both fixed by raising these numbers —
-see the "Honest scope" note below on what that means for running all four
-at once) for exactly this reason: **on an 8GB Mac, this is a real resource
-commitment**, especially alongside Postgres and the RAG side's embedding
-model already running. Stop other heavy local services first if things feel
-sluggish.
 
 ```bash
 cd warehouse
 podman machine start   # or `docker` if you have Docker Desktop instead of podman
-podman-compose up -d   # or `docker compose up -d`
+podman-compose up -d   # or `docker compose up -d` — just Kafka now
 
-# apply the Cassandra schema once the container is healthy (can take ~30-60s
-# on first boot)
-podman exec -i s2s-cassandra cqlsh < cassandra_schema.cql
+pip install -r ../requirements-warehouse.txt
 
 # start the simulated telemetry feed
-pip install kafka-python
 python3 producer.py --interval 2   # one tick of ~25 messages every 2s
 
-# submit the Flink aggregation job — needs the Kafka + Cassandra SQL
-# connector JARs on Flink's classpath first (not bundled in the base image):
-#   https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka/3.3.0-1.19/
-#   https://repo.maven.apache.org/maven2/org/apache/flink/flink-connector-cassandra/3.2.0-1.19/
-# drop both JARs into a local jars/ dir, add a volume mount for it in
-# docker-compose.yml (both flink-jobmanager and flink-taskmanager:
-#   volumes: ["./jars:/opt/flink/lib/custom"]), restart the Flink containers,
-# then:
-podman exec -i s2s-flink-jobmanager ./bin/flink run -py /opt/flink_job.py
-# (mount flink_job.py into the jobmanager container too, or copy it in first)
+# in another terminal: consume both topics, write straight into DuckDB
+python3 duckdb_writer.py
+
+# query it — no server, just open the file
+python3 -c "
+import duckdb
+con = duckdb.connect('ship_telemetry.duckdb')
+print(con.execute('SELECT COUNT(*) FROM sensor_readings').fetchone())
+print(con.execute('SELECT * FROM sensor_minute_aggregates LIMIT 5').fetchdf())
+"
 ```
+
+`ship_telemetry.duckdb` is gitignored (it's local run output, same policy as
+`data/*.duckdb` files elsewhere in this account) — `schema.sql` is the
+source of truth and is re-applied idempotently (`CREATE TABLE IF NOT
+EXISTS`) every time `duckdb_writer.py` starts.
 
 ## Honest scope
 
-- **The pieces are individually verified, live, in this environment — the
-  full pipeline (Flink SQL job + connector JARs) is not.** What's actually
-  been run and confirmed working on this machine: Cassandra accepts the
-  schema and real writes/reads via `cqlsh`; Kafka accepts and serves real
-  producer traffic (checked with the console consumer); Flink's jobmanager
-  and taskmanager register with each other cleanly. What hasn't: submitting
-  `flink_job.py` itself against a live cluster, which needs the Kafka +
-  Cassandra SQL connector JARs wired onto the classpath (see "Running it"
-  above) — that step is documented but not yet automated or run end-to-end
-  here. Treat the SQL in `flink_job.py` as carefully written and consistent
-  with the schema it targets (every column/type/primary-key matches
-  `cassandra_schema.cql` exactly), not as proven-by-execution.
-- **Single-node everything.** Kafka (1 broker), Cassandra (1 node), Flink (1
-  task manager, 2 slots). None of this has the replication/fault-tolerance a
-  production telemetry pipeline would need — this is a demo/dev-scale
-  architecture demonstrating the pattern, not a production system.
+- **Single-node Kafka**, 1 broker, 1 partition per topic — a dev-scale
+  message bus, not a cluster.
 - **Synthetic data.** `producer.py` generates plausible-looking but entirely
   made-up sensor values — there's no real engine/GPS hardware behind any of
   this, and the vessel names (drawn from the real casualty reports already
   in this project's literature corpus) don't imply the telemetry itself is
   real.
+- **`sensor_minute_aggregates` is a view, not a materialized table** —
+  recomputed on every query. Fine at demo volume; if raw-row count ever grew
+  large enough for that to matter, the fix is a periodic `CREATE TABLE ...
+  AS SELECT` snapshot, not bringing back a stream processor.

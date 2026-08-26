@@ -1,0 +1,5 @@
+# Deps for warehouse/producer.py + warehouse/duckdb_writer.py — the ship
+# telemetry lake/warehouse. Separate from requirements.txt (RAG ingestion)
+# and requirements-api.txt (ops REST API): this is its own concern.
+kafka-python>=2.0
+duckdb>=1.0
