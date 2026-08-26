@@ -102,3 +102,40 @@ def test_multiple_citations_in_one_sentence():
     result = check_citations(answer, PASSAGES)
     assert result["citation_count"] == 2
     assert result["out_of_range"] == []
+
+
+def test_regulations_absent_when_no_key_on_passage():
+    # PASSAGES fixtures carry no regulation_refs key at all -- must not KeyError.
+    answer = "The vessel's main engine caught fire [1]."
+    result = check_citations(answer, PASSAGES)
+    assert result["regulations"] == {}
+
+
+def test_regulations_surfaced_for_citation_with_refs():
+    passages_with_refs = [
+        {
+            **PASSAGES[0],
+            "regulation_refs": [
+                {"instrument": "SOLAS", "detail": "Chapter II-1", "year": None, "raw": "SOLAS"}
+            ],
+        },
+        PASSAGES[1],
+    ]
+    answer = (
+        "The vessel's main engine caught fire after an electrical short "
+        "circuit in the generator room [1]. Investigators found no evidence "
+        "of prior mechanical defects and maintenance had been performed on "
+        "schedule [2]."
+    )
+    result = check_citations(answer, passages_with_refs)
+    assert result["regulations"] == {
+        1: [{"instrument": "SOLAS", "detail": "Chapter II-1", "year": None, "raw": "SOLAS"}]
+    }
+    assert 2 not in result["regulations"]  # passage 2 has no regulation_refs key
+
+
+def test_regulations_absent_when_refs_is_empty_list():
+    passages_with_empty_refs = [{**PASSAGES[0], "regulation_refs": []}]
+    answer = "The vessel's main engine caught fire [1]."
+    result = check_citations(answer, passages_with_empty_refs)
+    assert result["regulations"] == {}

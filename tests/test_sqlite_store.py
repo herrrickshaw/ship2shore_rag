@@ -97,3 +97,36 @@ def test_retrieve_does_not_crash_on_fts5_special_characters(db_path, query):
 def test_fts5_query_quotes_each_token():
     assert sqlite_store._fts5_query("what is a bill?") == '"what" AND "is" AND "a" AND "bill"'
     assert sqlite_store._fts5_query("???") == ""
+
+
+def test_regulation_refs_round_trip(db_path):
+    conn = sqlite_store.connect(db_path)
+    sqlite_store.create_schema(conn)
+    doc_id = sqlite_store.insert_document(
+        conn, "test", "https://example.com/marpol", "MARPOL", None
+    )
+    refs = [{"instrument": "MARPOL", "detail": "Annex VI", "year": 1997, "raw": "MARPOL"}]
+    sqlite_store.insert_chunks(
+        conn, doc_id, ["MARPOL Annex VI covers air pollution"], [_fake_embedding(1.0)], [refs]
+    )
+    conn.commit()
+    conn.close()
+
+    results = sqlite_store.retrieve(
+        "MARPOL air pollution", _fake_embedding(1.0), top_k=1, path=db_path
+    )
+    assert results[0]["regulation_refs"] == refs
+
+
+def test_regulation_refs_defaults_to_empty_list_when_not_provided(db_path):
+    conn = sqlite_store.connect(db_path)
+    sqlite_store.create_schema(conn)
+    doc_id = sqlite_store.insert_document(conn, "test", "https://example.com/x", "X", None)
+    sqlite_store.insert_chunks(conn, doc_id, ["unrelated content here"], [_fake_embedding(1.0)])
+    conn.commit()
+    conn.close()
+
+    results = sqlite_store.retrieve(
+        "unrelated content", _fake_embedding(1.0), top_k=1, path=db_path
+    )
+    assert results[0]["regulation_refs"] == []

@@ -36,6 +36,15 @@ CREATE INDEX IF NOT EXISTS chunks_embedding_idx
     ON chunks USING ivfflat (embedding vector_cosine_ops)
     WITH (lists = 100);
 
+-- Per-chunk, not per-document: the whole point is regulation references at
+-- paragraph granularity (README "Not yet done" -> citation traceability),
+-- since which specific chunk of a long convention page mentions "Annex VI"
+-- is exactly what a per-document field can't capture. JSONB array of
+-- {"instrument","detail","year","raw"} from ingest/regulation_refs.py,
+-- empty array (not null) when a chunk has no regulation language. Same
+-- idempotent ADD COLUMN IF NOT EXISTS pattern as published_at/content_hash.
+ALTER TABLE chunks ADD COLUMN IF NOT EXISTS regulation_refs JSONB NOT NULL DEFAULT '[]';
+
 -- Sparse (keyword) side of hybrid retrieval — fused with the dense index above
 -- via Reciprocal Rank Fusion in retrieval/retriever.py.
 CREATE INDEX IF NOT EXISTS chunks_tsv_idx ON chunks USING gin (content_tsv);

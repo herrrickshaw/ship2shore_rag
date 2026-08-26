@@ -1,5 +1,47 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Regulation-reference extraction
+
+Worked via the `unlazy` skill's solo mode (`GATES.md` at repo root, not
+the orchestrated `PLAN.md`/`gates/` pattern from the earlier multi-leaf
+build — this was one cohesive feature, not independent parallel work).
+Closes the last genuine item in README's "Not yet done".
+
+### Added
+- **`ingest/regulation_refs.py`** — extracts real IMO instrument
+  references (SOLAS, MARPOL, STCW, COLREG, ISM/ISPS Code, MLC, BWM, SAR,
+  Load Lines — with Annex/Chapter/Regulation detail and nearby amendment
+  years, when the text states them) and US CFR citations (e.g. "46 CFR
+  26.30-5") already present in chunk text. Deliberately scoped as real
+  extraction of what's already stated, not a temporal knowledge graph
+  modeling which regulation version supersedes which (the DNV RuleAgent /
+  Vibylabs pattern from the market survey) — that remains a materially
+  larger, genuinely-undertaken future direction.
+- **`chunks.regulation_refs`** (JSONB on Postgres, TEXT-as-JSON on SQLite)
+  — per-chunk, not per-document, since paragraph-level granularity was the
+  actual point. Same idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS` /
+  try-except pattern as `published_at`/`content_hash`.
+- **`ingest/backfill_regulation_refs.py`** — a real gap found during
+  verification, not anticipated in the plan: content_hash-based freshness
+  tracking correctly skips re-processing unchanged text, which also means
+  a brand-new derived-metadata field never gets computed for chunks
+  ingested before the feature existed. Backfill recomputes just the cheap
+  regex extraction (no re-fetch, no re-embed) — run once against the live
+  corpus: 882 of the corpus's chunks got real regulation references.
+- Wired into `retrieval/retriever.py` and `retrieval/sqlite_store.py`'s
+  return shape, and into `rag/cite_check.py`'s output (`regulations:
+  {citation_index: [refs]}`) so a citation surfaces which specific
+  instrument/annex/CFR section it actually points to, when known.
+- 24 new tests (`test_regulation_refs.py` plus additions to
+  `test_cite_check.py`/`test_sqlite_store.py`). Adversarially re-checked
+  the "no false positives" gate after marking it met (per unlazy's
+  discipline) and found a real, if currently-harmless, limitation: short
+  acronyms (MLC, SAR) can collide with an unrelated proper noun containing
+  them as a substring. Checked every real chunk with a bare "MLC" in the
+  actual corpus (4) — all genuinely about the convention, not a
+  collision — and documented the limitation rather than building
+  disambiguation machinery for a risk that doesn't manifest in real data.
+
 ## [Unreleased] — 2026-08-26 — Ingestion microservice + source-plugin registry
 
 ### Added

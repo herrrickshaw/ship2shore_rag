@@ -8,11 +8,13 @@ document's chunks in place instead of being silently skipped or duplicated.
 
 import psycopg
 from pgvector.psycopg import register_vector
+from psycopg.types.json import Json
 
 from config import DATABASE_URL, STORAGE_BACKEND
 from ingest.chunk import chunk_text
 from ingest.embed import embed_texts
 from ingest.freshness import compute_hash
+from ingest.regulation_refs import extract_refs
 
 
 def ingest_documents(documents: list[dict], sqlite_path: str | None = None) -> int:
@@ -44,6 +46,7 @@ def _ingest_postgres(documents: list[dict]) -> int:
                 if not chunks:
                     continue
                 embeddings = embed_texts(chunks)
+                refs_per_chunk = [extract_refs(chunk) for chunk in chunks]
 
                 if existing:
                     doc_id = existing[0]
@@ -75,11 +78,13 @@ def _ingest_postgres(documents: list[dict]) -> int:
                     doc_id = cur.fetchone()[0]
 
                 cur.executemany(
-                    "INSERT INTO chunks (document_id, chunk_index, content, embedding) "
-                    "VALUES (%s, %s, %s, %s)",
+                    "INSERT INTO chunks (document_id, chunk_index, content, embedding, regulation_refs) "
+                    "VALUES (%s, %s, %s, %s, %s)",
                     [
-                        (doc_id, i, chunk, embedding)
-                        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings))
+                        (doc_id, i, chunk, embedding, Json(refs))
+                        for i, (chunk, embedding, refs) in enumerate(
+                            zip(chunks, embeddings, refs_per_chunk)
+                        )
                     ],
                 )
             conn.commit()
@@ -107,6 +112,7 @@ def _ingest_sqlite(documents: list[dict], sqlite_path: str | None) -> int:
             if not chunks:
                 continue
             embeddings = embed_texts(chunks)
+            refs_per_chunk = [extract_refs(chunk) for chunk in chunks]
 
             if row:
                 doc_id = row[0]
@@ -145,7 +151,7 @@ def _ingest_sqlite(documents: list[dict], sqlite_path: str | None) -> int:
                     content_hash,
                 )
 
-            sqlite_store.insert_chunks(conn, doc_id, chunks, embeddings)
+            sqlite_store.insert_chunks(conn, doc_id, chunks, embeddings, refs_per_chunk)
             conn.commit()
             changed += 1
     finally:

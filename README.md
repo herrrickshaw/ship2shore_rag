@@ -96,6 +96,7 @@ ingest/loaders.py        -> loads local files instead — PDF, TXT/MD, HTML, DOC
 ingest/chunk.py            -> splits documents into overlapping word-window chunks
 ingest/embed.py              -> embeds chunks locally (sentence-transformers)
 ingest/freshness.py           -> content_hash so re-ingesting a changed URL updates it in place
+ingest/regulation_refs.py      -> extracts real IMO/CFR regulation references from chunk text
 ingest/ingest.py                -> orchestrates fetch -> chunk -> embed -> upsert (postgres or sqlite)
 retrieval/retriever.py            -> hybrid retrieval: dense cosine + Postgres full-text, fused via RRF
 retrieval/sqlite_store.py          -> same hybrid retrieval against the vessel-side SQLite snapshot
@@ -456,13 +457,27 @@ automatically; nothing else changes. Localhost-only by default
 web UI — this service *writes* to the corpus, so unlike the web UI its
 default posture matters even more.
 
+## Regulation-reference extraction
+
+Citation traceability is source-link + per-citation grounding check
+(`rag/cite_check.py`) *plus* per-paragraph regulation references:
+`ingest/regulation_refs.py` extracts real IMO instrument mentions (SOLAS,
+MARPOL, STCW, COLREG, ISM/ISPS Code, MLC, BWM, SAR, Load Lines — with
+Annex/Chapter/Regulation detail and nearby amendment years, when present)
+and US CFR citations already present in chunk text, stored per-chunk
+(`chunks.regulation_refs`, both backends) and surfaced in retrieval results
+and `check_citations()`'s output. Run `python3 -m
+ingest.backfill_regulation_refs` after upgrading to compute it for chunks
+ingested before this existed — freshness tracking correctly skips
+re-processing unchanged text, which also means it won't retroactively add
+new derived metadata on its own.
+
+This is real extraction of what's already stated in the text, not a
+temporal knowledge graph modeling which version of a regulation supersedes
+which (the DNV RuleAgent / Vibylabs pattern from the market survey) — that
+remains a materially larger, undertaken future direction, not implemented.
+
 ## Not yet done
 
-- Citation traceability is source-link + per-citation grounding check
-  (`rag/cite_check.py` flags out-of-range or weakly-grounded `[n]`
-  citations against the actually-retrieved passages), but not yet
-  per-paragraph / regulation-version tracking (the DNV RuleAgent /
-  Vibylabs temporal-knowledge-graph pattern from the market survey is a
-  documented future direction, not implemented).
 - `--export` writes a report file — it does not send email itself. Attach or
   paste it into your mail client of choice.

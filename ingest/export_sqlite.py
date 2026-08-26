@@ -30,14 +30,16 @@ def export_sqlite(sqlite_path: str = SQLITE_PATH) -> tuple[int, int]:
                 lite_conn, source, url, title, license, published_at_str
             )
             chunks = pg_conn.execute(
-                "SELECT content, embedding FROM chunks WHERE document_id = %s ORDER BY chunk_index",
+                "SELECT content, embedding, regulation_refs FROM chunks "
+                "WHERE document_id = %s ORDER BY chunk_index",
                 (pg_doc_id,),
             ).fetchall()
             if not chunks:
                 continue
             contents = [c[0] for c in chunks]
             embeddings = [c[1].to_list() for c in chunks]
-            sqlite_store.insert_chunks(lite_conn, new_doc_id, contents, embeddings)
+            regulation_refs = [c[2] for c in chunks]
+            sqlite_store.insert_chunks(lite_conn, new_doc_id, contents, embeddings, regulation_refs)
             doc_count += 1
             chunk_count += len(contents)
 

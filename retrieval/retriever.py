@@ -53,7 +53,7 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
 
             cur.execute(
                 """
-                SELECT c.id, c.content, d.title, d.url, d.source, d.published_at
+                SELECT c.id, c.content, d.title, d.url, d.source, d.published_at, c.regulation_refs
                 FROM chunks c JOIN documents d ON d.id = c.document_id
                 WHERE c.id = ANY(%s)
                 """,
@@ -67,6 +67,7 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
             "url": by_id[i][3],
             "source": by_id[i][4],
             "published_at": by_id[i][5],
+            "regulation_refs": by_id[i][6],
             "score": fused[i],
         }
         for i in top_ids

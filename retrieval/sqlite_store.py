@@ -6,6 +6,7 @@ file: no Postgres, no internet. Generation (Claude) is still optional and still
 needs connectivity — see README "Shipboard deployment".
 """
 
+import json
 import re
 import sqlite3
 
@@ -43,7 +44,8 @@ CREATE TABLE IF NOT EXISTS chunks (
     id INTEGER PRIMARY KEY,
     document_id INTEGER NOT NULL REFERENCES documents(id),
     chunk_index INTEGER NOT NULL,
-    content TEXT NOT NULL
+    content TEXT NOT NULL,
+    regulation_refs TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
@@ -78,6 +80,10 @@ def create_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE documents ADD COLUMN content_hash TEXT")
     except sqlite3.OperationalError:
         pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE chunks ADD COLUMN regulation_refs TEXT NOT NULL DEFAULT '[]'")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
 
 
@@ -98,12 +104,17 @@ def insert_document(
 
 
 def insert_chunks(
-    conn: sqlite3.Connection, document_id: int, chunks: list[str], embeddings: list[list[float]]
+    conn: sqlite3.Connection,
+    document_id: int,
+    chunks: list[str],
+    embeddings: list[list[float]],
+    regulation_refs: list[list[dict]] | None = None,
 ) -> None:
-    for i, (content, embedding) in enumerate(zip(chunks, embeddings)):
+    refs_per_chunk = regulation_refs or [[] for _ in chunks]
+    for i, (content, embedding, refs) in enumerate(zip(chunks, embeddings, refs_per_chunk)):
         cur = conn.execute(
-            "INSERT INTO chunks (document_id, chunk_index, content) VALUES (?, ?, ?)",
-            (document_id, i, content),
+            "INSERT INTO chunks (document_id, chunk_index, content, regulation_refs) VALUES (?, ?, ?, ?)",
+            (document_id, i, content, json.dumps(refs)),
         )
         chunk_id = cur.lastrowid
         conn.execute("INSERT INTO chunks_fts (rowid, content) VALUES (?, ?)", (chunk_id, content))
@@ -160,7 +171,7 @@ def retrieve(
         placeholders = ",".join("?" * len(top_ids))
         rows = conn.execute(
             f"""
-            SELECT c.id, c.content, d.title, d.url, d.source, d.published_at
+            SELECT c.id, c.content, d.title, d.url, d.source, d.published_at, c.regulation_refs
             FROM chunks c JOIN documents d ON d.id = c.document_id
             WHERE c.id IN ({placeholders})
             """,
@@ -174,6 +185,7 @@ def retrieve(
                 "url": by_id[i][3],
                 "source": by_id[i][4],
                 "published_at": by_id[i][5],
+                "regulation_refs": json.loads(by_id[i][6]),
                 "score": fused[i],
             }
             for i in top_ids

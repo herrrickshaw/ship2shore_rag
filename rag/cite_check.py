@@ -120,13 +120,26 @@ def check_citations(answer: str, passages: list[dict]) -> dict:
         in-range citations whose sentence barely overlaps the cited passage
       citation_count: total number of [n] markers found (including duplicates
         and out-of-range ones)
+      regulations: {citation_index: [regulation refs, ...]} for in-range
+        citations whose passage carries real regulation_refs (from
+        ingest/regulation_refs.py) -- which specific instrument/annex/CFR
+        section a citation actually points to, when the source text says
+        so, not just "passage N". Indices with no known regulation
+        reference are simply absent, not padded with an empty list.
     """
     out_of_range: set[int] = set()
     weak_grounding: list[dict] = []
+    regulations: dict[int, list[dict]] = {}
     citation_count = 0
 
     if not answer:
-        return {"valid": True, "out_of_range": [], "weak_grounding": [], "citation_count": 0}
+        return {
+            "valid": True,
+            "out_of_range": [],
+            "weak_grounding": [],
+            "citation_count": 0,
+            "regulations": {},
+        }
 
     for sentence in _split_sentences(answer):
         markers = [int(m) for m in CITATION_RE.findall(sentence)]
@@ -138,7 +151,8 @@ def check_citations(answer: str, passages: list[dict]) -> dict:
             if idx < 1 or idx > len(passages):
                 out_of_range.add(idx)
                 continue
-            passage_tokens = _tokenize(passages[idx - 1]["content"])
+            passage = passages[idx - 1]
+            passage_tokens = _tokenize(passage["content"])
             overlap = _jaccard(sentence_tokens, passage_tokens)
             if overlap < WEAK_GROUNDING_THRESHOLD:
                 weak_grounding.append(
@@ -148,10 +162,14 @@ def check_citations(answer: str, passages: list[dict]) -> dict:
                         "overlap_ratio": round(overlap, 4),
                     }
                 )
+            refs = passage.get("regulation_refs")
+            if refs:
+                regulations[idx] = refs
 
     return {
         "valid": not out_of_range and not weak_grounding,
         "out_of_range": sorted(out_of_range),
         "weak_grounding": weak_grounding,
         "citation_count": citation_count,
+        "regulations": regulations,
     }

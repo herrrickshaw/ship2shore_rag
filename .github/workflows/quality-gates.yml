@@ -30,4 +30,4 @@ jobs:
         with: { python-version: "3.11", cache: pip }
       - run: pip install pytest pyyaml sqlite-vec beautifulsoup4 python-docx openpyxl python-pptx pypdf requests "psycopg[binary]" pgvector fastapi httpx apscheduler
       - name: Run tests (no live Postgres / no heavy ML deps needed for these)
-        run: pytest -q tests/test_chunk.py tests/test_sources.py tests/test_sqlite_store.py tests/test_loaders.py tests/test_export.py tests/test_ops_auth.py tests/test_ops_store.py tests/test_api.py tests/test_cite_check.py tests/test_diversify.py tests/test_query_log.py tests/test_retriever_filters.py tests/test_freshness.py tests/test_webui.py tests/test_registry.py tests/test_ingest_service.py
+        run: pytest -q tests/test_chunk.py tests/test_sources.py tests/test_sqlite_store.py tests/test_loaders.py tests/test_export.py tests/test_ops_auth.py tests/test_ops_store.py tests/test_api.py tests/test_cite_check.py tests/test_diversify.py tests/test_query_log.py tests/test_retriever_filters.py tests/test_freshness.py tests/test_webui.py tests/test_registry.py tests/test_ingest_service.py tests/test_regulation_refs.py
