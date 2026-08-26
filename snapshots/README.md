@@ -8,9 +8,12 @@ for the full design rationale.
 
 ## Current snapshot
 
+Only the latest snapshot is kept — `ship2shore.sqlite3` is overwritten on each
+regeneration rather than accumulating a dated file per export.
+
 | | |
 |---|---|
-| File | `ship2shore-2026-08-26.sqlite3` |
+| File | `ship2shore.sqlite3` |
 | Generated | 2026-08-26 |
 | Size | 7,393,280 bytes (7.05 MiB) |
 | SHA-256 | `ee33c7e962c7bf79b60b468dc888763715be91017c0df5d53e6dc41a96345bea` |
@@ -36,14 +39,14 @@ After copying the file aboard (USB, or over a satellite sync), verify it
 before pointing `SQLITE_PATH` at it:
 
 ```bash
-shasum -a 256 ship2shore-2026-08-26.sqlite3
+shasum -a 256 ship2shore.sqlite3
 # should print: ee33c7e962c7bf79b60b468dc888763715be91017c0df5d53e6dc41a96345bea
 ```
 
 ## Using it
 
 ```bash
-cp snapshots/ship2shore-2026-08-26.sqlite3 /path/on/vessel/ship2shore.sqlite3
+cp snapshots/ship2shore.sqlite3 /path/on/vessel/ship2shore.sqlite3
 ```
 
 In the vessel's `.env`:
@@ -61,13 +64,16 @@ or how it was generated.
 ## Regenerating
 
 ```bash
-python3 cli.py export-sqlite --output snapshots/ship2shore-$(date +%Y-%m-%d).sqlite3
+python3 cli.py export-sqlite --output snapshots/ship2shore.sqlite3
 ```
 
-Each regeneration is a fresh, complete copy of the corpus at that point in
-time — not a diff against the previous snapshot. Because SQLite files don't
-compress well as git deltas, this directory will grow by roughly one full
-snapshot's size (currently ~7MB) each time it's updated; that's an accepted
-tradeoff for a small, personal-scale corpus like this one, worth revisiting
-(e.g. only keeping the latest snapshot, or moving to Git LFS) if the corpus
-grows substantially larger.
+This overwrites the committed file in place — each commit replaces the
+previous snapshot rather than adding a new one, so this directory stays at
+roughly one snapshot's size regardless of how often it's regenerated. Update
+the table above (size, checksum, date, corpus composition) to match whenever
+you regenerate and commit a new snapshot.
+
+Note: git history still retains the earlier dated snapshot from before this
+policy (`ship2shore-2026-08-26.sqlite3`, one commit) — that's normal git
+behavior, not a leftover to clean up; it costs nothing going forward since the
+working tree now only ever has the one current file.
