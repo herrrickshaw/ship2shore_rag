@@ -26,6 +26,18 @@ localhost-only by default like webui/server.py, with the same opt-in
 pattern (INGEST_SERVICE_HOST) rather than a new auth scheme: this is an
 operator tool for a single deployment, not something meant to be exposed
 publicly the way api.py's ops API is.
+
+Every request-handling endpoint is plain `def`, not `async def`, and
+_run_ingest (the function doing the actual blocking work -- requests HTTP
+calls, psycopg/sqlite3) is a plain sync function too, passed to
+BackgroundTasks rather than awaited. Both matter for the same reason:
+Starlette runs plain-`def` endpoints AND sync callables handed to
+BackgroundTasks in its worker thread pool automatically, so none of that
+blocking I/O ever freezes the event loop -- the classic FastAPI mistake is
+an `async def` endpoint calling something blocking directly on the loop,
+which this doesn't do anywhere. Don't add `async`/`await` here without
+also making the underlying calls (requests -> httpx.AsyncClient, psycopg
+-> AsyncConnection) actually async, or this becomes exactly that mistake.
 """
 
 import json

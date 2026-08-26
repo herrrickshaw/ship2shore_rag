@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Documented the FastAPI concurrency invariant
+
+### Added
+- Checked all three FastAPI services (`api.py`, `webui/server.py`,
+  `ingest_service/server.py`) against a real concurrency mistake
+  described in a reading-list article (Jam with AI, "The Concurrency
+  Mistake Hiding in Every FastAPI AI Service"): an `async def` endpoint
+  calling a blocking sync function (like `requests.post` or a sync DB
+  driver) directly freezes FastAPI's single-threaded event loop for
+  every concurrent request, not just the slow one. Confirmed this
+  project doesn't have it — every request-handling endpoint across all
+  three services is plain `def` (Starlette runs those in a worker
+  thread pool automatically), and `ingest_service`'s actual blocking
+  work (`_run_ingest`) is a sync function handed to `BackgroundTasks`,
+  which is also thread-pooled. The only `async def` anywhere is
+  `ingest_service`'s `_lifespan` context manager, required by FastAPI's
+  lifespan protocol and irrelevant to per-request blocking.
+  Added a docstring note to each service explaining this — a non-obvious
+  invariant a future "modernize this to async" edit could easily break
+  without realizing it was protecting against exactly this bug.
+
 ## [Unreleased] — 2026-08-27 — Regulation-reference extraction
 
 Worked via the `unlazy` skill's solo mode (`GATES.md` at repo root, not

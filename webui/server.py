@@ -9,6 +9,16 @@ config.STORAGE_BACKEND) and answers questions — no credentials involved, so
 none are required. Because there's no auth, it must never be reachable from
 the network by default: binds to 127.0.0.1 unless WEBUI_HOST is set
 explicitly (see __main__ below and README "Web UI" for the opt-in).
+
+Endpoints are plain `def`, not `async def` -- deliberately. ask() ->
+retrieve() calls psycopg/sqlite3 (sync) and a sentence-transformers model
+(sync, CPU-bound); none of that is awaitable. A plain `def` endpoint runs
+in Starlette's worker thread pool automatically, so that blocking work
+never freezes the event loop. Making this `async def` without also
+awaiting every blocking call inside it would be the exact FastAPI mistake
+where one slow request stalls every other concurrent request on the same
+process -- don't "modernize" this to async without threading async I/O
+all the way through ask()/retrieve() first.
 """
 
 import os

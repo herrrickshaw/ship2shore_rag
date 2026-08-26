@@ -12,6 +12,16 @@ the actual access gate for deployment — see README "Operations module API".
 
 Deliberately does NOT wrap rag/pipeline.py (`ask`) — this is the ops-data
 surface only, matching what was asked for.
+
+Every endpoint is plain `def`, not `async def` — deliberately. ops/store.py
+is entirely sync (psycopg/sqlite3, no awaitable calls), and a plain `def`
+endpoint runs in Starlette's worker thread pool automatically, so that
+blocking I/O never freezes the event loop. Making an endpoint `async def`
+without also awaiting every blocking call inside it is the classic FastAPI
+mistake where one slow request stalls every other concurrent request on
+the same process — don't "modernize" this to async without threading
+async I/O all the way through ops/store.py first (psycopg has an async
+API; sqlite3 doesn't have an official one).
 """
 
 import os
