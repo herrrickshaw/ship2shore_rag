@@ -8,17 +8,21 @@ position) — the kind of write-heavy, mostly-append workload Cassandra is
 built for and Postgres is not.
 
 ```
-producer.py --(JSON)--> Kafka (KRaft, single broker) --> Flink (1-min tumbling
-windows) --> Cassandra (raw readings + pre-aggregated rollups)
+                                    +--> sensor_readings      (raw, lake)
+producer.py --(JSON)--> Kafka --> Flink --> position_reports    (raw, lake)
+                                    +--> sensor_minute_aggregates (warehouse)
 ```
+
+One Flink job (a `StatementSet` — see `flink_job.py`), reading each Kafka
+topic once, fanning out to three Cassandra sinks: two raw passthroughs and
+one 1-minute tumbling-window aggregation. Not three separate jobs each
+re-consuming the topic from scratch.
 
 - **Kafka** — the message bus. KRaft mode (no separate ZooKeeper — Kafka 3.x+
   doesn't need it, and it's meaningfully lighter for a single-node dev setup).
-- **Flink** — the stream processor. Consumes raw readings, computes 1-minute
-  avg/min/max/count per vessel per sensor, writes the aggregate to Cassandra.
-  Raw readings also get written straight to Cassandra by a second (simpler)
-  path so nothing is lost even before aggregation runs — see "Two write
-  paths" below.
+- **Flink** — the stream processor, doing both jobs at once: raw passthrough
+  (nothing is lost even before any aggregation) and 1-minute avg/min/max/count
+  per vessel per sensor.
 - **Cassandra** — the lake/warehouse. `sensor_readings` and
   `position_reports` are the lake (raw, as-received); `sensor_minute_aggregates`
   is the warehouse side (pre-aggregated, fast to query).
@@ -27,10 +31,14 @@ windows) --> Cassandra (raw readings + pre-aggregated rollups)
 
 This is genuinely heavy — four JVM-based containers (Kafka, Cassandra, Flink
 jobmanager + taskmanager). `docker-compose.yml` caps each service's memory
-(Kafka 512MB, Cassandra 1GB, each Flink node 640MB — roughly 2.8GB total) for
-exactly this reason: **on an 8GB Mac, this is a real resource commitment**,
-especially alongside Postgres and the RAG side's embedding model already
-running. Stop other heavy local services first if things feel sluggish.
+(Kafka 512MB, Cassandra 2GB, each Flink node 1GB — roughly 4.5GB total; the
+first, lower memory budget this project tried made Cassandra crash outright
+and made Flink fail to start at all, both fixed by raising these numbers —
+see the "Honest scope" note below on what that means for running all four
+at once) for exactly this reason: **on an 8GB Mac, this is a real resource
+commitment**, especially alongside Postgres and the RAG side's embedding
+model already running. Stop other heavy local services first if things feel
+sluggish.
 
 ```bash
 cd warehouse
@@ -57,26 +65,20 @@ podman exec -i s2s-flink-jobmanager ./bin/flink run -py /opt/flink_job.py
 # (mount flink_job.py into the jobmanager container too, or copy it in first)
 ```
 
-## Two write paths — raw vs. aggregated
-
-The producer publishes to Kafka; Flink reads from Kafka and writes only the
-*aggregated* rollups to Cassandra per `flink_job.py`. Raw readings landing
-directly in `sensor_readings`/`position_reports` (the actual "lake" tables)
-isn't wired up in `flink_job.py` — that would be a second Flink sink (or a
-simpler Kafka Connect Cassandra sink) inserting the untransformed stream
-alongside the aggregation job. Not built yet; flagged here rather than
-implied as done, since "the lake has raw data" and "the warehouse has
-aggregates" are both claims this README makes about the schema, but only the
-aggregate path is currently wired end-to-end in code.
-
 ## Honest scope
 
-- **Not verified end-to-end in this environment.** Bringing up four JVM
-  containers plus wiring Flink's Kafka/Cassandra connectors correctly is a
-  substantial undertaking even before touching the 8GB RAM ceiling on this
-  particular machine. The compose stack, schema, producer, and Flink job are
-  real, reviewable code — treat "does this actually run cleanly end-to-end"
-  as unverified until you've run it yourself (or I have, on a beefier box).
+- **The pieces are individually verified, live, in this environment — the
+  full pipeline (Flink SQL job + connector JARs) is not.** What's actually
+  been run and confirmed working on this machine: Cassandra accepts the
+  schema and real writes/reads via `cqlsh`; Kafka accepts and serves real
+  producer traffic (checked with the console consumer); Flink's jobmanager
+  and taskmanager register with each other cleanly. What hasn't: submitting
+  `flink_job.py` itself against a live cluster, which needs the Kafka +
+  Cassandra SQL connector JARs wired onto the classpath (see "Running it"
+  above) — that step is documented but not yet automated or run end-to-end
+  here. Treat the SQL in `flink_job.py` as carefully written and consistent
+  with the schema it targets (every column/type/primary-key matches
+  `cassandra_schema.cql` exactly), not as proven-by-execution.
 - **Single-node everything.** Kafka (1 broker), Cassandra (1 node), Flink (1
   task manager, 2 slots). None of this has the replication/fault-tolerance a
   production telemetry pipeline would need — this is a demo/dev-scale
