@@ -1,0 +1,52 @@
+# Hand-curated retrieval eval set — real queries against the actual ingested
+# corpus (not invented data), one unambiguous document per query so a hit/miss
+# is a clean signal. Built by inspecting `documents` directly (see
+# eval/evaluate.py docstring for how to regenerate/extend this).
+#
+# expected_urls is a list so a query CAN have more than one acceptable answer
+# later; every entry here currently has exactly one.
+- question: "what causes a man overboard incident on a bulk carrier"
+  expected_urls:
+    - "https://assets.publishing.service.gov.uk/media/6a6091d10dd52549f5f96ce3/2026-16-WorldPrize-Report.pdf"
+- question: "serious injury to a crew member on a scallop dredger"
+  expected_urls:
+    - "https://assets.publishing.service.gov.uk/media/6a392188c6e94f095f3efbb7/2026-14-Jacoba-ReportAndAnnex.pdf"
+- question: "grounding and loss of a fishing vessel"
+  expected_urls:
+    - "https://assets.publishing.service.gov.uk/media/6a79dd269fad0e27bebabea2/2026-17-SilverCloudII-Report.pdf"
+- question: "allision of a rigid inflatable boat with a navigation beacon"
+  expected_urls:
+    - "https://assets.publishing.service.gov.uk/media/6a54e0a42467584757371e17/2026-15-PeakyBlinder-ReportAndAnnexes.pdf"
+- question: "containership collision with a bridge"
+  expected_urls:
+    - "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2540.pdf"
+- question: "capsizing and sinking of a towing vessel"
+  expected_urls:
+    - "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2521.pdf"
+- question: "diesel generator engine failure on a passenger vessel"
+  expected_urls:
+    - "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2513.pdf"
+- question: "what is a bill of lading"
+  expected_urls:
+    - "https://en.wikipedia.org/wiki/Bill_of_lading"
+- question: "what is the Baltic Dry Index"
+  expected_urls:
+    - "https://en.wikipedia.org/wiki/Baltic_Dry_Index"
+- question: "what is demurrage in shipping"
+  expected_urls:
+    - "https://en.wikipedia.org/wiki/Demurrage"
+- question: "what is general average in maritime law"
+  expected_urls:
+    - "https://en.wikipedia.org/wiki/General_average"
+- question: "cybersecurity challenges in the shipping industry"
+  expected_urls:
+    - "http://arxiv.org/abs/2208.03607v1"
+- question: "predicting ship detention in port state control inspections with a language model"
+  expected_urls:
+    - "http://arxiv.org/abs/2505.19568v1"
+- question: "hybrid retrieval augmented generation for maritime accident root cause analysis"
+  expected_urls:
+    - "http://arxiv.org/abs/2606.13249v1"
+- question: "an open-source maritime industry-specific large language model"
+  expected_urls:
+    - "http://arxiv.org/abs/2503.00203v3"

@@ -6,6 +6,7 @@ from ingest.ingest import ingest_documents
 from ingest.loaders import fetch_local_files
 from ingest.sources import fetch_arxiv, fetch_arxiv_seed, fetch_maib, fetch_ntm, fetch_pdf_sources, fetch_wikipedia
 from rag.pipeline import ask
+from eval.evaluate import main as run_eval
 
 
 def cmd_init_db(_args) -> None:
@@ -87,6 +88,8 @@ def main() -> None:
     p_export = sub.add_parser("export-sqlite", help="snapshot Postgres corpus to a portable SQLite file for vessel deployment")
     p_export.add_argument("--output", default=None, help="defaults to SQLITE_PATH from config")
     p_export.set_defaults(func=cmd_export_sqlite)
+
+    sub.add_parser("eval", help="run the retrieval eval harness (recall@k / MRR against eval/queries.yaml, rerank on vs off)").set_defaults(func=lambda _args: run_eval())
 
     ops_cli.register(sub)
 

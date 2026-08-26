@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Retrieval eval harness (Recall@k / MRR)
+
+### Added
+- **`eval/queries.yaml`** — 15 hand-curated queries against the real
+  ingested corpus (one unambiguous expected URL each), spanning all 6
+  ingestion sources (arxiv, wikipedia, maib, ntm, pdf, file).
+- **`eval/evaluate.py`** — computes Recall@k and MRR for a query set, run
+  with reranking on and off. Wired into `cli.py eval`. Not RAGAS — no LLM
+  judge, runs offline, measures retrieval directly rather than generation
+  quality.
+
+Phase 2 of the measurable-retrieval plan (Phase 1: query logging). First
+real numbers from it, run against the corpus (130 documents after this
+session's ingestion): reranking took MRR from **0.633 to 0.933** at
+identical recall@5 (0.93) — every hit that reranking found moved to rank 1
+instead of being scattered across rank 1/2, which is exactly the effect a
+cross-encoder rescoring pass should have. One genuine miss in both runs
+("an open-source maritime industry-specific large language model" — the
+Llamarine paper isn't surfacing in the top 5 either way) — a real finding
+from the harness, not a bug, left as-is rather than chased down.
+
 ## [Unreleased] — 2026-08-26 — Query/retrieval logging
 
 ### Added
