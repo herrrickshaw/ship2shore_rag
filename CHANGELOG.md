@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — ARCHITECTURE.md
+
+### Added
+- **`ARCHITECTURE.md`** — a structural map of the system through two
+  standard frameworks applied to this actual codebase (not described in
+  the abstract): TOGAF's four architecture domains (Business/Data/
+  Application/Technology) and the EMC/Pivotal Data Analytics Lifecycle
+  (Discovery → Data Preparation → Model Planning → Model Building →
+  Communicate Results → Operationalize), plus a Kaizen/PDCA framing of the
+  eval-harness-driven improvement loop, citing this session's own
+  diversify.py `quick_ratio()` bug (caught and fixed via that exact loop)
+  as the concrete example rather than a hypothetical one. Two of the four
+  source documents the user pointed to were blocked by the same Google
+  Drive CloudStorage permission issue from earlier this session (`EPERM`)
+  — only the readable one's real table of contents (the Data Analytics
+  Lifecycle chapter) was used verbatim; SDLC/TOGAF content is applied from
+  general knowledge of those standard frameworks, not from the
+  inaccessible source PDFs.
+
 ## [Unreleased] — 2026-08-26 — 9 more IMO convention pages via type: html
 
 ### Added

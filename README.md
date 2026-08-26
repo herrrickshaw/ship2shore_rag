@@ -19,6 +19,10 @@ sits in, and it's why every ingestion source here is one you can point to and sa
 **Status:** ingestion, hybrid retrieval, and a vessel-side offline deployment path
 all work end-to-end; generation is optional and requires an Anthropic API key.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for a structural map of the system
+(data/application/technology layers, and how the pipeline evolved) —
+this file is setup/usage, that one is "how does this actually fit together."
+
 ## Stack
 
 - **Postgres + [pgvector](https://github.com/pgvector/pgvector)** — shore-side chunk
