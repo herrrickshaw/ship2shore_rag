@@ -244,6 +244,17 @@ python3 cli.py equipment add "MV Example" "Main Engine" --manufacturer "MAN B&W"
 python3 cli.py parts add 1 "PN-9001" "Cylinder liner" --qty 2 --user "Chief Engineer"
 python3 cli.py maintenance add 1 repair "Replaced cylinder liner #4" --hours 34500 --parts-used "PN-9001 x1" --user "Chief Engineer"
 python3 cli.py fuel add "MV Example" VLSFO bunkering 800 --rob 1450 --location Rotterdam --user "Chief Engineer"
+
+# Procurement — request/approve workflow, tied to the parts catalog above
+python3 cli.py procurement add "MV Example" "PN-9001 Cylinder liner x2" --supplier "MAN Energy Solutions" --cost 8500 --currency USD --user "Chief Engineer"
+python3 cli.py procurement approve 1 --user "Captain Ahab"   # only master/shore_staff can approve
+
+# Dry-docking
+python3 cli.py drydock add "MV Example" --yard "Keppel Shipyard" --start 2027-03-01 --end 2027-03-20 --scope "5-year special survey" --user "Captain Ahab"
+
+# QHSE — anyone can report, no --user role restriction; only master/shore_staff can close
+python3 cli.py safety report "MV Example" near_miss "Loose grating, tripping hazard" --severity medium --user "Deck Hand"
+python3 cli.py safety close 1 --corrective-action "Grating re-secured and inspected" --user "Captain Ahab"
 ```
 
 ### Offline-first, same as the literature corpus
@@ -268,10 +279,16 @@ There's no sync-back-to-shore mechanism yet (see below).
   supplement, not the vessel's legal record of account.
 - **The captain's-log/EPC pattern is a starting shape, not a finished
   product** — it covers the entities asked for (IAM, seafarer onboarding,
-  ship particulars, master/captain's log, EPC + repair history, fuel log) at
-  the depth a CLI tool can reasonably carry, matching the shape of the
-  commercial systems surveyed earlier (ABS Nautical Systems' PMS, Marcura's
-  disbursement/repair tracking) without their scale or their proprietary data.
+  ship particulars, master/captain's log, EPC + repair history, fuel log,
+  procurement, dry-docking, QHSE/safety reporting) at the depth a CLI tool
+  can reasonably carry, matching the shape of the commercial systems
+  surveyed (V.Group ShipSure, SpecTec AMOS, BASSnet, ShipNet, DNV
+  ShipManager) without their scale or their proprietary data.
+- **Still explicitly not covered**, per that same survey: crew payroll
+  (financial/compliance-heavy, a poor fit here), mobile apps (this is a CLI
+  tool), and condition-based maintenance / hull-fuel-performance analytics
+  (a different category of feature — real-time sensor data + ML, not a CRUD
+  table like everything else in this module).
 
 ## Not yet done
 
