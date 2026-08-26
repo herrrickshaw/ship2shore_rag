@@ -191,3 +191,61 @@ pdf_sources:
     title: "FAQ — EU Monitoring, Reporting and Verification (MRV) of shipping emissions"
     license: "European Commission — informational page, verify terms before redistribution"
     type: html
+
+  # Vessel-operations reference topics not in DEFAULT_WIKIPEDIA_TITLES
+  # (ingest/sources.py) — classification/insurance/safety-system/canal
+  # topics that complement the regulatory-compliance and casualty-report
+  # content already dominant in this corpus. ReCAAP ISC's and IACS's own
+  # homepages were checked and rejected: both are stat-dashboard/image-
+  # gallery pages with almost no real prose (same low-content pattern as
+  # the MarineInsight/Paris MoU rejections earlier) — the IACS Wikipedia
+  # article covers the same organization with real substantive text
+  # instead.
+  - url: "https://en.wikipedia.org/wiki/Classification_society"
+    title: "Classification society"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/International_Association_of_Classification_Societies"
+    title: "International Association of Classification Societies"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Marine_insurance"
+    title: "Marine insurance"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Protection_and_indemnity_insurance"
+    title: "Protection and indemnity insurance"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Global_Maritime_Distress_and_Safety_System"
+    title: "Global Maritime Distress and Safety System"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Automatic_identification_system"
+    title: "Automatic identification system"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Marine_salvage"
+    title: "Marine salvage"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Maritime_pilot"
+    title: "Maritime pilot"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Ballast_water_discharge_and_the_environment"
+    title: "Ballast water discharge and the environment"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Piracy"
+    title: "Piracy"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Panama_Canal"
+    title: "Panama Canal"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Suez_Canal"
+    title: "Suez Canal"
+    license: "CC BY-SA 4.0"
+    type: html

@@ -1,5 +1,46 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Vessel-operations reference topics + ivfflat recall fix
+
+### Added
+- **12 sources on classification/insurance/safety-systems/canals via
+  `type: html`**: Classification society, IACS (Wikipedia article — the
+  organization's own site is a stat/image-gallery homepage with almost no
+  prose, rejected), Marine insurance, Protection and indemnity (P&I)
+  insurance, GMDSS, AIS, Marine salvage, Maritime pilot, Ballast water
+  discharge and the environment, Piracy, Panama Canal, Suez Canal. ReCAAP
+  ISC's homepage was checked and rejected on the same low-content grounds
+  as IACS's — an incident-count dashboard with almost no narrative text.
+  Corpus: 632 → 644 documents (18,001 chunks).
+- Verified genuinely retrievable: spot-checked "what does a ship
+  classification society do" (ranked #1), "P&I insurance for shipowners"
+  (ranked #1/#2) directly.
+
+### Fixed
+- **`retrieval/retriever.py`: pgvector's ivfflat index was searching only
+  1 of its 100 lists (`ivfflat.probes` defaults to 1; `db/schema.sql` builds
+  the index with `lists='100')`)** — roughly 1% of the table per dense
+  query, silently dropping true nearest neighbours in favor of whatever
+  landed in the single probed list. Found while verifying the new Panama
+  Canal source: "Gatun Lake water levels drought impact on Panama Canal
+  transits" didn't surface the Panama Canal document at all — not even in
+  the top 15 raw dense-search results — despite a chunk existing that
+  discusses exactly that (verified directly: an exact, non-indexed
+  `ROW_NUMBER()` scan of the same query embedding placed that chunk at
+  rank 2). Fixed with `SET LOCAL ivfflat.probes = 10` (~sqrt(lists), the
+  standard pgvector recall/latency tradeoff) scoped to the retrieval
+  transaction — no schema change, no lasting connection state.
+  Confirmed fix: same query now ranks the Panama Canal document #1/#2.
+  Measured on `cli.py eval`'s existing 17-query set: rerank-OFF MRR
+  0.544 → 0.765 (rerank-ON unchanged at 0.853 on this small set — the
+  cross-encoder was compensating for a worse candidate pool, but that
+  compensation isn't guaranteed for harder or more specific queries, as
+  the Panama Canal case that surfaced this showed directly). This bug
+  predates this session's work and affects the whole corpus, not just the
+  documents added here — likely the real explanation behind some of the
+  "crowded out of top-N" observations chalked up to corpus-scale
+  competition in earlier ingestion rounds this session.
+
 ## [Unreleased] — 2026-08-27 — Compliance automation: STCW cert expiry + reportable-incident flag
 
 ### Added

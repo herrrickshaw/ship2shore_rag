@@ -25,6 +25,15 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
     with psycopg.connect(DATABASE_URL) as conn:
         register_vector(conn)
         with conn.cursor() as cur:
+            # ivfflat defaults to probes=1, i.e. searching only 1 of the
+            # index's 100 lists (db/schema.sql) -- ~1% of the table. At this
+            # corpus's scale (18k+ chunks) that silently drops true nearest
+            # neighbours from genuinely relevant documents in favor of
+            # whatever happens to land in the single probed list. probes=10
+            # (~sqrt(lists), the standard pgvector recall/latency tradeoff)
+            # was confirmed live to recover matches this missed entirely.
+            # SET LOCAL scopes it to this transaction only.
+            cur.execute("SET LOCAL ivfflat.probes = 10")
             cur.execute(
                 "SELECT id FROM chunks ORDER BY embedding <=> %s LIMIT %s",
                 (query_embedding, fetch_k),
