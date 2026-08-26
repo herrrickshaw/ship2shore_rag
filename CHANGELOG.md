@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — UNCTAD Review of Maritime Transport + HF-informed eval queries
+
+### Added
+- **UNCTAD's Review of Maritime Transport 2024** landing page
+  (`type: html`), the source `sources.yaml` flagged as worth ingesting
+  since the very first commit but never actually landed — the full-report
+  PDF timed out repeatedly on a real test, so the substantive publication
+  landing page went in instead. Corpus: 626 → 627 documents.
+- **2 new eval queries** (`eval/queries.yaml`) against this real content —
+  own phrasing, verified against the actual ingested chunk text, same
+  process as every prior entry. Both correctly rank 1st with reranking on.
+- Found via Hugging Face Hub's `illuin-conteb/maritime-qa` dataset (a
+  retrieval-eval set built from the 2022 edition of this same UNCTAD
+  report) — used only to confirm this document was worth prioritizing,
+  not as a content source: the dataset carries no license tag, so its
+  query/answer text isn't copied into this public repo, matching this
+  project's consistent stance on unclear-rights sources (MDPI, IMO pages,
+  the Jina Reader third-party-proxy caveat).
+
 ## [Unreleased] — 2026-08-27 — Documented the FastAPI concurrency invariant
 
 ### Added

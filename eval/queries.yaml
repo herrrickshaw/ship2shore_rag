@@ -50,3 +50,9 @@
 - question: "an open-source maritime industry-specific large language model"
   expected_urls:
     - "http://arxiv.org/abs/2503.00203v3"
+- question: "how much did global maritime trade grow in 2023"
+  expected_urls:
+    - "https://unctad.org/publication/review-maritime-transport-2024"
+- question: "how has the Panama Canal disruption affected shipping distances"
+  expected_urls:
+    - "https://unctad.org/publication/review-maritime-transport-2024"

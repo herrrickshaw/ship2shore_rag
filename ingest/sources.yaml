@@ -10,9 +10,15 @@
 # appropriate for anything under restricted redistribution terms — use
 # `--source file` for those instead, which never leaves this machine.
 #
-# UNCTAD's annual "Review of Maritime Transport" is published openly:
-# https://unctad.org/publication/review-maritime-transport-2024
-# Add the direct PDF link(s) you want ingested below.
+# UNCTAD's annual "Review of Maritime Transport" is published openly. The
+# full-report PDF (unctad.org/system/files/official-document/rmt2024_en.pdf)
+# timed out repeatedly when actually tested (2026-08-27) -- not fetched here.
+# The publication landing page has real substantive summary content and
+# fetches reliably, so it's added below as type: html instead. Found worth
+# prioritizing via illuin-conteb/maritime-qa on Hugging Face Hub (a
+# retrieval-eval dataset built from the 2022 edition of this same report) --
+# that dataset's query/answer text isn't copied here (no license tag on the
+# dataset itself), just used to confirm this document was worth the effort.
 #
 # NTSB marine accident reports are U.S. government works (17 U.S.C. §105 —
 # public domain). `cli.py ingest --source ntsb` auto-discovers these via
@@ -45,9 +51,10 @@ pdf_sources:
   - url: "https://www.ntsb.gov/investigations/AccidentReports/Reports/MIR2521.pdf"
     title: "Capsizing and Sinking of Towing Vessel Baylor J. Tregre"
     license: "U.S. government work — public domain"
-#  - url: "https://unctad.org/system/files/official-document/rmt2024_en.pdf"
-#    title: "UNCTAD Review of Maritime Transport 2024"
-#    license: "UNCTAD open access"
+  - url: "https://unctad.org/publication/review-maritime-transport-2024"
+    title: "Review of Maritime Transport 2024 — Navigating Maritime Chokepoints (UNCTAD)"
+    license: "UNCTAD — informational page, verify terms before redistribution"
+    type: html
 
   # Specific arXiv IDs found by name (not via the seed-query search) — added
   # as direct PDF pulls rather than through --source arxiv since that goes
