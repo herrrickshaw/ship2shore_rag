@@ -1,5 +1,40 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Ingestion microservice + source-plugin registry
+
+### Added
+- **`ingest/registry.py`** — a plugin registry (`REGISTRY: dict[str,
+  SourcePlugin]`) replacing `cli.py`'s data-type-specific if/elif dispatch
+  chain. Every existing fetcher (arxiv/wikipedia/maib/ntm/ntsb/pdf/file)
+  now registers as `SourcePlugin(name, fetch, description,
+  interval_minutes)`; `cli.py`'s `--source` choices are generated from
+  `sorted(REGISTRY)` instead of a hand-maintained list. Adding a new
+  source is one registry entry, not N call sites — the CLI, the ingestion
+  service, and its scheduler all read the same dict.
+- **`ingest_service/`** — a small FastAPI microservice (`cli.py
+  serve-ingest`, localhost-only by default like `webui/`, since unlike the
+  web UI this one writes to the corpus) with `GET /sources`, `POST
+  /sources/{name}/ingest` (background, on-demand), and `GET /runs` (history
+  from `ingest_runs.jsonl`, gitignored). An APScheduler `BackgroundScheduler`
+  polls every schedulable source (all but `--source file`, which has no
+  default path) on its own cadence — daily for arxiv/maib/ntsb/pdf, weekly
+  for wikipedia/ntm — so the corpus keeps improving with new data after
+  deployment instead of being frozen at whatever was ingested manually
+  beforehand. This is honest scheduled polling, not literal real-time/
+  event-driven streaming: none of the underlying sources offer a push
+  mechanism to be real-time *about*.
+- Verified live, not just unit-tested: started the service, confirmed all
+  7 sources registered with correct next-run times (6 scheduled, `file`
+  correctly excluded), triggered a real Wikipedia ingest via `POST
+  /sources/wikipedia/ingest` (73.68s — genuinely ran as a background task,
+  correctly logged to `ingest_runs.jsonl` with status/counts/duration).
+  9 new tests (`test_ingest_service.py`) using the same hermetic
+  TestClient + monkeypatch convention as `test_webui.py`; 8 more
+  (`test_registry.py`) for the plugin dispatch logic. CI whitelist and
+  its pip-install line updated and verified against a genuinely fresh venv
+  (`apscheduler` was the one new transitive dependency needed) — 109/109
+  passing in that clean environment before this landed.
+
 ## [Unreleased] — 2026-08-26 — Port State Control literature via type: html
 
 ### Added

@@ -11,3 +11,4 @@ graphify-out/
 warehouse/ship_telemetry.duckdb
 query_log.jsonl
 .coverage
+ingest_runs.jsonl

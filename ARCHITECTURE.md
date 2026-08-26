@@ -47,6 +47,7 @@ duplicating or silently going stale.
 ### Application Architecture — the pipeline
 
 ```
+ingest/registry.py             -> one uniform interface over every source (see below)
 ingest/sources.py, loaders.py  -> fetch (arxiv/wikipedia/maib/ntsb/ntm/pdf/html/file)
 ingest/chunk.py, embed.py      -> chunk + embed locally
 ingest/ingest.py               -> upsert, freshness-aware (postgres or sqlite)
@@ -58,13 +59,38 @@ retrieval/diversify.py  -> final top-k cut: per-source cap + dedup
 rag/pipeline.py    -> cited prompt, optional Claude generation
 rag/cite_check.py  -> flags out-of-range / weakly-grounded citations
         |
-cli.py (CLI) | webui/ (browser) | api.py (ops REST, separate auth model)
+cli.py (CLI) | webui/ (browser, read-only) | ingest_service/ (write, scheduled+on-demand) | api.py (ops REST)
 ```
 
 Every stage above is independently swappable because each does exactly one
 job — this is what let reranking, diversity filtering, and metadata
 filtering each land as an isolated change to `retriever.py`'s pipeline
 this session without touching the stages around them.
+
+`ingest/registry.py` is the same principle applied one layer up: before it
+existed, adding a source meant editing an if/elif chain in `cli.py`
+(`if args.source == "arxiv": ... elif ...`) — data-type-specific dispatch
+baked into the CLI itself. Every fetcher now registers as a
+`SourcePlugin(name, fetch, description, interval_minutes)`; `cli.py`,
+`ingest_service/server.py`'s scheduler, and its `/sources`/`/runs`
+endpoints all read from the same `REGISTRY` dict, so a new source is one
+registry entry, not N call sites to update. This is what "moving from
+data-type-specific processing to generic processing" concretely means
+here — a dispatch table, not a rewrite of every source's actual fetch
+logic (arXiv's API shape and NTSB's CAROL API shape are still genuinely
+different; the registry doesn't pretend otherwise, it just gives every
+difference a uniform *call* shape).
+
+`ingest_service/` is the deployment-time half: an HTTP control plane over
+the same registry, with an APScheduler background loop that polls each
+source on its own cadence so the corpus keeps improving with new data
+after the system is live, not just at whatever was ingested manually
+before launch. This is honest scheduled polling, not literal real-time/
+event-driven streaming — none of arXiv's API, MAIB/NTM's feeds, or NTSB's
+CAROL endpoint offer a push/webhook mechanism to be real-time *about*, so
+periodic polling close to each source's own actual update cadence is what
+"real-time" correctly means for this specific set of sources. See README
+"Ingestion service" for the endpoints.
 
 ### Technology Architecture — what it runs on
 
@@ -75,9 +101,14 @@ Claude generation is optional (extractive fallback works with zero API
 calls), Jina AI Reader is the one exception — an external service, used
 only for public HTML pages in `sources.yaml`, explicitly not for anything
 under restricted redistribution terms (`--source file` stays fully local
-for those). FastAPI + uvicorn for both `api.py` and `webui/server.py`.
-Docker/GHCR for the ops API; Fly.io deploy config exists but requires the
-user's own account setup.
+for those). FastAPI + uvicorn for `api.py`, `webui/server.py`, and
+`ingest_service/server.py` — three small independently-runnable services,
+one write surface each with a distinct trust model (ops CRUD +
+API-key auth, read-only Q&A + no auth, corpus writes + localhost-only), not
+one monolith with internal mode-switches. APScheduler (`BackgroundScheduler`,
+its own thread pool — doesn't block FastAPI's async event loop) for
+`ingest_service`'s polling. Docker/GHCR for the ops API; Fly.io deploy
+config exists but requires the user's own account setup.
 
 ## SDLC: the general software process, applied here
 

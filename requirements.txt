@@ -13,4 +13,5 @@ pyyaml>=6.0
 anthropic>=0.34  # optional: only used by `ask` when ANTHROPIC_API_KEY is set
 fastapi>=0.115   # api.py — REST wrapper around ops/store.py
 uvicorn>=0.32
+apscheduler>=3.10  # ingest_service/server.py — scheduled ingestion
 pytest>=8.0

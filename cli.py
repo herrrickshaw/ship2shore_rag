@@ -5,16 +5,8 @@ import ops_cli
 from db.init_db import main as init_db
 from eval.evaluate import main as run_eval
 from ingest.ingest import ingest_documents
-from ingest.loaders import fetch_local_files
-from ingest.sources import (
-    fetch_arxiv,
-    fetch_arxiv_seed,
-    fetch_maib,
-    fetch_ntm,
-    fetch_ntsb,
-    fetch_pdf_sources,
-    fetch_wikipedia,
-)
+from ingest.registry import REGISTRY
+from ingest.registry import fetch as fetch_source
 from rag.pipeline import ask
 
 
@@ -23,24 +15,16 @@ def cmd_init_db(_args) -> None:
 
 
 def cmd_ingest(args) -> None:
-    if args.source == "arxiv":
-        docs = fetch_arxiv(args.query, args.max_results) if args.query else fetch_arxiv_seed()
-    elif args.source == "wikipedia":
-        docs = fetch_wikipedia()
-    elif args.source == "pdf":
-        docs = fetch_pdf_sources(args.config)
-    elif args.source == "maib":
-        docs = fetch_maib(args.max_results)
-    elif args.source == "ntm":
-        docs = fetch_ntm(args.max_results)
-    elif args.source == "ntsb":
-        docs = fetch_ntsb(args.max_results)
-    elif args.source == "file":
-        if not args.path:
-            raise SystemExit('--source file requires --path (a glob, e.g. "./docs/**/*.pdf")')
-        docs = fetch_local_files(args.path)
-    else:
-        raise SystemExit(f"unknown source: {args.source}")
+    try:
+        docs = fetch_source(
+            args.source,
+            query=args.query,
+            max_results=args.max_results,
+            config=args.config,
+            path=args.path,
+        )
+    except ValueError as e:
+        raise SystemExit(str(e)) from e
 
     count = ingest_documents(docs)
     print(f"ingested {count} new document(s) from {len(docs)} fetched ({args.source})")
@@ -56,6 +40,23 @@ def cmd_serve(_args) -> None:
     host = os.environ.get("WEBUI_HOST", "127.0.0.1")
     port = int(os.environ.get("WEBUI_PORT", "8020"))
     print(f"serving web UI at http://{host}:{port} (set WEBUI_HOST/WEBUI_PORT to change)")
+    uvicorn.run(app, host=host, port=port)
+
+
+def cmd_serve_ingest(_args) -> None:
+    import os
+
+    import uvicorn
+
+    from ingest_service.server import app
+
+    host = os.environ.get("INGEST_SERVICE_HOST", "127.0.0.1")
+    port = int(os.environ.get("INGEST_SERVICE_PORT", "8030"))
+    print(
+        f"serving ingestion service at http://{host}:{port} "
+        "(set INGEST_SERVICE_HOST/INGEST_SERVICE_PORT to change) — "
+        "GET /sources, POST /sources/{name}/ingest, GET /runs"
+    )
     uvicorn.run(app, host=host, port=port)
 
 
@@ -111,7 +112,7 @@ def main() -> None:
     p_ingest.add_argument(
         "--source",
         required=True,
-        choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "ntsb", "file"],
+        choices=sorted(REGISTRY),
     )
     p_ingest.add_argument(
         "--query", default=None, help="arxiv search query (omit to run the built-in seed queries)"
@@ -144,7 +145,7 @@ def main() -> None:
     p_ask.add_argument(
         "--source-filter",
         default=None,
-        choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "ntsb", "file"],
+        choices=sorted(REGISTRY),
         help="only consider documents from this ingestion source",
     )
     p_ask.add_argument(
@@ -174,6 +175,12 @@ def main() -> None:
         "serve",
         help="serve the read-only web UI (localhost only by default — see README 'Web UI')",
     ).set_defaults(func=cmd_serve)
+
+    sub.add_parser(
+        "serve-ingest",
+        help="serve the ingestion microservice — scheduled + on-demand ingestion over HTTP "
+        "(localhost only by default — see README 'Ingestion service')",
+    ).set_defaults(func=cmd_serve_ingest)
 
     ops_cli.register(sub)
 
