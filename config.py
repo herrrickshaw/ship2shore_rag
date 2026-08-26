@@ -20,6 +20,7 @@ _load_dotenv(ROOT / ".env")
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/ship2shore")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 EMBEDDING_DIM = 384  # matches all-MiniLM-L6-v2
+RERANKER_MODEL = os.environ.get("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # STORAGE_BACKEND selects where retrieval reads from:

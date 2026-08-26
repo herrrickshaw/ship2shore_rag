@@ -44,7 +44,7 @@ def cmd_export_sqlite(args) -> None:
 
 
 def cmd_ask(args) -> None:
-    result = ask(args.question, top_k=args.top_k, generate=not args.no_generate)
+    result = ask(args.question, top_k=args.top_k, generate=not args.no_generate, rerank=not args.no_rerank)
     if result["answer"]:
         print(result["answer"])
         print()
@@ -79,6 +79,7 @@ def main() -> None:
     p_ask.add_argument("question")
     p_ask.add_argument("--top-k", type=int, default=5)
     p_ask.add_argument("--no-generate", action="store_true")
+    p_ask.add_argument("--no-rerank", action="store_true", help="skip the cross-encoder reranking pass, use RRF fusion order as-is")
     p_ask.add_argument("--export", default=None, help="write a compact report to this path (.html, .txt, or .md)")
     p_ask.add_argument("--format", default=None, choices=["html", "txt", "md"], help="defaults to --export's extension")
     p_ask.set_defaults(func=cmd_ask)

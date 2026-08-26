@@ -93,6 +93,7 @@ ingest/embed.py              -> embeds chunks locally (sentence-transformers)
 ingest/ingest.py               -> orchestrates fetch -> chunk -> embed -> upsert into pgvector
 retrieval/retriever.py           -> hybrid retrieval: dense cosine + Postgres full-text, fused via RRF
 retrieval/sqlite_store.py         -> same hybrid retrieval against the vessel-side SQLite snapshot
+retrieval/rerank.py                -> cross-encoder reranks the fused candidate pool down to top-k
 rag/pipeline.py                     -> builds a cited prompt from top-k chunks, calls Claude (optional)
 rag/export.py                         -> renders an answer + sources as a compact HTML/text report
 db/schema.sql                           -> documents + chunks tables, ivfflat cosine + GIN full-text index
@@ -105,6 +106,12 @@ pattern used for maritime accident-report retrieval in "Multi-Field Hybrid RAG
 for Maritime Accident Root Cause Analysis" (arXiv 2606.13249): dense embedding
 similarity finds conceptually related passages, keyword search catches exact
 terms (vessel names, regulation numbers, IMO numbers) that embeddings can miss.
+RRF's fused order is then rescored by a local cross-encoder
+(`cross-encoder/ms-marco-MiniLM-L-6-v2`) over a wider candidate pool — RRF
+only knows *where* each side ranked a chunk, not how relevant it actually is
+to the query, and a cross-encoder reading (query, passage) pairs jointly is
+usually the single biggest relevance gain in a hybrid pipeline. Disable with
+`ask --no-rerank` / `ask(..., rerank=False)` to fall back to RRF order as-is.
 
 ## Sources
 

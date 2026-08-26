@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Cross-encoder reranking
+
+### Added
+- **`retrieval/rerank.py`** — reranks the RRF-fused candidate pool with a
+  local cross-encoder (`cross-encoder/ms-marco-MiniLM-L-6-v2`, configurable
+  via `RERANKER_MODEL`) before cutting to `top_k`. RRF only knows where each
+  side (dense/sparse) ranked a chunk, never how relevant it actually is to
+  the query — a cross-encoder scoring (query, passage) pairs directly is
+  usually the biggest single relevance gain available in a hybrid retrieval
+  pipeline, and it needed no new dependency (`sentence-transformers` was
+  already pulled in for embeddings; `CrossEncoder` is the same package).
+  `retriever.retrieve()` now pulls a wider `candidate_k` pool from RRF
+  (default 20, was previously == `top_k`) so the cross-encoder has more than
+  `top_k` candidates to actually choose among. Verified live against the
+  real corpus: reranking visibly reordered results for "what causes engine
+  room fires on cargo ships" — a bridge-allision report RRF ranked mid-pack
+  correctly dropped to last, since it isn't actually about engine fires.
+  `ask --no-rerank` / `retrieve(..., rerank=False)` falls back to RRF order.
+
 ## [Unreleased] — 2026-08-26 — Telemetry warehouse: Cassandra+Flink -> DuckDB
 
 ### Changed

@@ -13,6 +13,7 @@ from pgvector.psycopg import register_vector
 
 from config import DATABASE_URL, STORAGE_BACKEND
 from ingest.embed import embed_query
+from retrieval.rerank import rerank as _cross_encoder_rerank
 
 
 def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list[dict]:
@@ -68,9 +69,26 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
     ]
 
 
-def retrieve(query: str, top_k: int = 5, fetch_k: int = 30, rrf_k: int = 60) -> list[dict]:
+def retrieve(
+    query: str,
+    top_k: int = 5,
+    fetch_k: int = 30,
+    rrf_k: int = 60,
+    rerank: bool = True,
+    candidate_k: int = 20,
+) -> list[dict]:
+    """RRF gives a fused pool ranked by *where* each side placed a chunk, not
+    by how relevant it actually is to the query — so when rerank is on, pull
+    a wider candidate_k pool from RRF and let the cross-encoder pick the
+    final top_k from it, instead of trusting RRF's own cutoff."""
+    pool_k = max(top_k, candidate_k) if rerank else top_k
     if STORAGE_BACKEND == "sqlite":
         from retrieval import sqlite_store
 
-        return sqlite_store.retrieve(query, embed_query(query), top_k, fetch_k, rrf_k)
-    return _retrieve_postgres(query, top_k, fetch_k, rrf_k)
+        candidates = sqlite_store.retrieve(query, embed_query(query), pool_k, fetch_k, rrf_k)
+    else:
+        candidates = _retrieve_postgres(query, pool_k, fetch_k, rrf_k)
+
+    if rerank:
+        return _cross_encoder_rerank(query, candidates, top_k)
+    return candidates[:top_k]

@@ -16,8 +16,8 @@ def _build_context(passages: list[dict]) -> str:
     )
 
 
-def ask(question: str, top_k: int = 5, generate: bool = True) -> dict:
-    passages = retrieve(question, top_k=top_k)
+def ask(question: str, top_k: int = 5, generate: bool = True, rerank: bool = True) -> dict:
+    passages = retrieve(question, top_k=top_k, rerank=rerank)
     if not passages:
         return {"answer": "No documents ingested yet — run `cli.py ingest` first.", "passages": []}
 
