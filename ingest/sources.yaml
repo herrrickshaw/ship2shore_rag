@@ -150,3 +150,17 @@ pdf_sources:
     title: "The Human Element (IMO)"
     license: "IMO — informational page, verify terms before redistribution"
     type: html
+
+  # UK flag-state regulator — same regulatory ecosystem as the MAIB
+  # casualty reports already dominant in this corpus. Checked a wider
+  # round of candidates first (ICS, ITF, Lloyd's Register, BIMCO, USCG,
+  # MAIB's own about-us page, 3 MarineInsight articles) and rejected all
+  # of them: 404s, cookie-consent walls Jina Reader couldn't get past, an
+  # ITF union-directory listing with no real prose, and MarineInsight
+  # pages that extracted as 100% nav/footer boilerplate with zero article
+  # body — real content quality checked, not assumed, same discipline as
+  # every prior batch.
+  - url: "https://www.gov.uk/government/organisations/maritime-and-coastguard-agency/about"
+    title: "About us — Maritime and Coastguard Agency (MCA)"
+    license: "Open Government Licence v3.0"
+    type: html

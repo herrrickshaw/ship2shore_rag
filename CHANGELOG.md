@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — MCA "About us" via type: html
+
+### Added
+- **UK Maritime and Coastguard Agency's "About us" page** — same
+  regulatory ecosystem as the MAIB casualty reports already dominant in
+  the corpus. Checked a wide round of candidates first and rejected all
+  of them on real content quality (not assumed): ICS, MAIB's own
+  about-us page (both 404s), ITF (a union-directory listing, no real
+  prose), Lloyd's Register and BIMCO (cookie-consent walls Jina Reader
+  couldn't get past), USCG (just the .mil security notice), and 3
+  MarineInsight articles that extracted as 100% nav/footer boilerplate
+  with zero article body. Corpus: 627 → 628 documents.
+- Verified genuinely retrievable, not just present: a generic query
+  ("what does the Maritime and Coastguard Agency do") got crowded out of
+  the top 10 by the many MAIB reports that also mention "coastguard" —
+  a real corpus-scale competition effect, not a bug (same phenomenon
+  documented earlier this session after the NTSB batch). A query
+  matching the page's actual distinguishing content (its real motto,
+  "Safer lives, safer ships, cleaner seas") correctly ranks it 1st.
+
 ## [Unreleased] — 2026-08-27 — UNCTAD Review of Maritime Transport + HF-informed eval queries
 
 ### Added
