@@ -13,6 +13,7 @@ from pgvector.psycopg import register_vector
 
 from config import DATABASE_URL, STORAGE_BACKEND
 from ingest.embed import embed_query
+from retrieval.diversify import select as _diversify_select
 from retrieval.rerank import rerank as _cross_encoder_rerank
 
 
@@ -78,10 +79,12 @@ def retrieve(
     candidate_k: int = 20,
 ) -> list[dict]:
     """RRF gives a fused pool ranked by *where* each side placed a chunk, not
-    by how relevant it actually is to the query — so when rerank is on, pull
-    a wider candidate_k pool from RRF and let the cross-encoder pick the
-    final top_k from it, instead of trusting RRF's own cutoff."""
-    pool_k = max(top_k, candidate_k) if rerank else top_k
+    by how relevant it actually is to the query, and says nothing about
+    whether two chunks are redundant — so pull a wider candidate_k pool from
+    RRF regardless of rerank, let the cross-encoder rescore it (if enabled),
+    then let diversify.select() do the final top_k cut, skipping same-source
+    overflow and near-duplicates as it walks down the ranking."""
+    pool_k = max(top_k, candidate_k)
     if STORAGE_BACKEND == "sqlite":
         from retrieval import sqlite_store
 
@@ -90,5 +93,5 @@ def retrieve(
         candidates = _retrieve_postgres(query, pool_k, fetch_k, rrf_k)
 
     if rerank:
-        return _cross_encoder_rerank(query, candidates, top_k)
-    return candidates[:top_k]
+        candidates = _cross_encoder_rerank(query, candidates)
+    return _diversify_select(candidates, top_k)

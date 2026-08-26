@@ -20,13 +20,16 @@ def _model():
     return CrossEncoder(RERANKER_MODEL)
 
 
-def rerank(query: str, passages: list[dict], top_k: int) -> list[dict]:
-    """Rescore passages against the query and return the best top_k, each
-    tagged with rerank_score. passages must have a 'content' key."""
+def rerank(query: str, passages: list[dict]) -> list[dict]:
+    """Rescore passages against the query, tag each with rerank_score, and
+    return all of them sorted best-first. Does NOT cut to top_k — that's
+    diversify.select()'s job, so it can skip near-duplicates while walking
+    down this order instead of losing candidates to a cut made before
+    dedup ever sees them. passages must have a 'content' key."""
     if not passages:
         return []
     pairs = [(query, p["content"]) for p in passages]
     scores = _model().predict(pairs)
     for p, score in zip(passages, scores):
         p["rerank_score"] = float(score)
-    return sorted(passages, key=lambda p: p["rerank_score"], reverse=True)[:top_k]
+    return sorted(passages, key=lambda p: p["rerank_score"], reverse=True)

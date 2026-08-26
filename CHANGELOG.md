@@ -1,5 +1,33 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Redundancy / near-duplicate filtering
+
+### Added
+- **`retrieval/diversify.py`** — the final top_k cut, applied after
+  reranking (or after RRF if reranking is off): caps results per source
+  document (`max_per_source=2`) and skips near-duplicate passages via
+  `difflib.SequenceMatcher.ratio()`. Fixes a redundancy problem the query
+  log caught in the wild — a 3-result query had returned 3 chunks from the
+  same NTSB report.
+- `retrieval/rerank.py:rerank()` no longer cuts to `top_k` itself — it now
+  scores and sorts the full candidate pool, leaving the cut to
+  `diversify.select()` so dedup can skip candidates while walking the
+  ranking instead of losing them to an earlier cut.
+
+### Fixed (caught by Phase 2's own eval harness before this shipped)
+- First version used `SequenceMatcher.quick_ratio()` for the near-duplicate
+  check, which is a character-multiset upper bound, not real sequence
+  similarity — on natural-language English text of similar length it runs
+  high for almost any two paragraphs (similar letter frequency), not just
+  genuinely duplicate ones. Running `cli.py eval` with reranking off caught
+  this immediately: recall@5 dropped from 0.93 to 0.47 because the dedup
+  pass was discarding correct passages, mistaking generic boilerplate
+  letter-frequency overlap (UK government report front-matter, near-
+  identical across every MAIB report) for real duplication. Switched to
+  `.ratio()` (actual longest-matching-block comparison) — recall/MRR
+  returned to baseline (0.93 / 0.633 rerank-off, 0.93 / 0.933 rerank-on)
+  while the original redundancy fix (same-document cap) still holds.
+
 ## [Unreleased] — 2026-08-26 — Retrieval eval harness (Recall@k / MRR)
 
 ### Added
