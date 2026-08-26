@@ -313,12 +313,38 @@ docker run -p 8010:8010 -e API_KEY="$API_KEY" -e DATABASE_URL="$DATABASE_URL" gh
 
 **Not yet done: actually running this somewhere public.** The image is
 publishable and pullable; nothing hosts and runs it continuously with a
-public URL and a publicly reachable Postgres yet. That needs a hosting
-account (Fly.io, Render, a VPS, etc. — this repo has no CLI/credentials for
-any of those) and a reachable Postgres (the local one on `:5433` isn't
-reachable from the internet either). Both are real decisions with real cost
-implications that belong to whoever's paying for them, not something to
-default into.
+public URL and a publicly reachable Postgres yet. `fly.toml` is written and
+ready (Fly.io, `sin` region, scales to zero when idle to keep cost down), but
+actually deploying needs steps only the account owner can do — I can't
+create a Fly.io account, add a payment method, or complete the browser-based
+`fly auth login`. **Fly.io has no free tier as of 2026** — a card is
+required to sign up, and even the cheapest path costs something monthly, so
+this is a real decision for whoever's paying, not something to default into.
+
+To deploy once you're ready:
+
+```bash
+brew install flyctl        # already done in this environment
+fly auth login              # opens your browser — this step is yours to do
+fly launch --no-deploy       # picks up fly.toml, creates the app, skips first deploy
+
+# Cheapest Postgres path: an unmanaged Fly Postgres app (a few $/month for a
+# small single-node instance) rather than Fly's Managed Postgres ($38+/month) —
+# reasonable for this project's scale, not for a production fleet system.
+fly postgres create --name ship2shore-ops-db --initial-cluster-size 1 --vm-size shared-cpu-1x --volume-size 3
+fly postgres attach ship2shore-ops-db -a ship2shore-ops-api   # wires DATABASE_URL automatically
+
+fly secrets set API_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')" -a ship2shore-ops-api
+fly deploy -a ship2shore-ops-api
+
+# then run `python3 cli.py init-db` once (or the equivalent SQL) against the
+# new Postgres to create the ops tables — the app doesn't self-migrate
+```
+
+After that, tighten `allow_origins` in `api.py` from `"*"` to the actual
+frontend origin, and update the Lovable project's `API_BASE` (in
+`src/lib/api.ts`, or via the `s2s.apiBase` localStorage override already
+built into it) to the new `https://ship2shore-ops-api.fly.dev` URL.
 
 **Deployment caveat, stated plainly:** this only listens on `127.0.0.1` by
 default and isn't deployed anywhere public. A frontend hosted elsewhere (e.g.

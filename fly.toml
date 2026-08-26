@@ -1,0 +1,19 @@
+app = "ship2shore-ops-api"
+primary_region = "sin"  # Singapore — closest to a lot of shipping traffic; change freely
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8010"
+
+[http_service]
+  internal_port = 8010
+  force_https = true
+  auto_stop_machines = "stop"   # scales to zero when idle — keeps cost down for low-traffic use
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
