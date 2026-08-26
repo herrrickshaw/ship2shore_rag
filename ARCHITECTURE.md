@@ -1,13 +1,15 @@
 # Architecture
 
-This document structures ship2shore_rag through two lenses: **TOGAF's four
-architecture domains** (what the system is, layer by layer) and the **Data
-Analytics Lifecycle** (how the system was actually built, and how it keeps
-improving). Both are standard frameworks, applied here to a real, specific
-system rather than described in the abstract — every claim below names an
-actual file, table, or measured number.
+This document structures ship2shore_rag through four lenses, each grounded
+in a real, cited source rather than described in the abstract: **TOGAF's
+four architecture domains**[^togaf] (what the system is, layer by layer),
+the general **SDLC**[^sdlc] (how it was engineered), the domain-specific
+**Data Analytics Lifecycle**[^dsbda] (the same build, from a data-pipeline
+angle), and **Kaizen**[^kaizen] (how it keeps improving). Every claim below
+names an actual file, table, or measured number — see "References" at the
+bottom for full citations.
 
-## TOGAF view: four architecture domains
+## TOGAF view: four architecture domains[^togaf]
 
 ### Business Architecture — what problem, for whom
 
@@ -77,7 +79,34 @@ for those). FastAPI + uvicorn for both `api.py` and `webui/server.py`.
 Docker/GHCR for the ops API; Fly.io deploy config exists but requires the
 user's own account setup.
 
-## Data Analytics Lifecycle: how this was actually built
+## SDLC: the general software process, applied here
+
+Lemke's SDLC thesis (2018) enumerates six phases — planning and requirement
+analysis, design and development, implementation, testing, integration,
+maintenance[^sdlc] — built and applied to a real small web app in that
+thesis, and equally real here at a larger scale:
+
+1. **Planning and requirement analysis** — the market/literature survey
+   that found the actual gap (self-hostable, legally-open-only RAG) before
+   any code existed.
+2. **Design and development** — the architecture decisions in the sections
+   above: shore/vessel split, hybrid retrieval, dual-backend storage.
+3. **Implementation** — the modules themselves: `ingest/`, `retrieval/`,
+   `rag/`, `ops/`, `webui/`, `cli.py`.
+4. **Testing** — 92 pytest tests (`tests/`) plus `eval/evaluate.py`'s
+   retrieval-specific Recall@k/MRR harness, which ordinary unit tests can't
+   substitute for (they check code correctness, not retrieval quality).
+5. **Integration** — the branch-gate step every multi-part change went
+   through this session: leaf-level work verified independently, then
+   wired together (`cli.py`, CI whitelist, README) and re-verified as a
+   whole — see `gates/node-1.md` for a concrete instance of this phase
+   done explicitly, not implicitly.
+6. **Maintenance** — `content_hash`-based freshness tracking
+   (`ingest/freshness.py`) so re-ingesting a changed source updates the
+   corpus in place instead of going silently stale; `CHANGELOG.md` as the
+   maintenance log.
+
+## Data Analytics Lifecycle: how this was actually built[^dsbda]
 
 The EMC/Pivotal *Data Science & Big Data Analytics* lifecycle (Discovery →
 Data Preparation → Model Planning → Model Building → Communicate Results →
@@ -103,7 +132,7 @@ analytics problem:
    API, and critically: `eval/evaluate.py` — the mechanism that makes every
    later change to this pipeline measurable rather than a guess.
 
-## Kaizen: the improvement loop, not just the pipeline
+## Kaizen: the improvement loop, not just the pipeline[^kaizen]
 
 Operationalize isn't a one-time endpoint — `eval/evaluate.py` closes a
 Plan-Do-Check-Act loop that already caught a real defect in this project's
@@ -124,9 +153,41 @@ example: a whole architecture tried, measured against this project's
 actual needs, and deliberately reverted) — a Kaizen log is only useful if
 it's honest about what didn't work, not just what shipped.
 
+Okpala, Ezeanyim & Nwamekwe's review of Kaizen in manufacturing makes a
+point that generalizes past its own domain: standardized processes are
+what make Kaizen improvements *measurable* in the first place —
+"[w]ithout standardization, it would be challenging to gauge the impact
+of Kaizen activities."[^kaizen] `eval/evaluate.py` is that standardization
+here: a fixed, repeatable measurement (Recall@k/MRR against the same 15
+queries) is what let reranking's and dedup's actual effect be stated as
+numbers (0.633→0.933 MRR; 0.93→0.47→0.93 recall through the
+quick_ratio→ratio() fix) instead of "seems better."
+
 ## Where this document stops
 
 This is a structural map, not a tutorial — see [README.md](README.md) for
 setup/usage, [CHANGELOG.md](CHANGELOG.md) for the decision history, and
 `PLAN.md`/`gates/` for the evidence trail behind the largest single batch
 of changes (the orchestrated "close the remaining gaps" build).
+
+## References
+
+[^togaf]: The Open Group. *The TOGAF® Standard, 10th Edition* (document
+    C220). Published April 2022. <https://pubs.opengroup.org/togaf-standard/>
+
+[^sdlc]: Lemke, Gillian. "The software development life cycle and its
+    application." Senior Honors Theses and Projects, 589. Eastern Michigan
+    University, Computer Science (advised by Dr. Krish Narayanan and Dr.
+    Augustine Ikeji), 2018. <https://commons.emich.edu/honors/589>
+
+[^dsbda]: Dietrich, D., Heller, B., & Yang, B. (EMC Education Services).
+    *Data Science & Big Data Analytics: Discovering, Analyzing,
+    Visualizing and Presenting Data*. Wiley, 2015. ISBN 978-1-118-87613-8.
+    Chapter 2, "Data Analytics Lifecycle."
+
+[^kaizen]: Okpala, Charles Chikwendu; Ezeanyim, Okechukwu Chiedu; &
+    Nwamekwe, Charles Onyeka. "The Implementation of Kaizen Principles in
+    Manufacturing Processes: A Pathway to Continuous Improvement."
+    *International Journal of Engineering Inventions*, 13(7), 116–124,
+    July 2024. Industrial/Production Engineering Department, Nnamdi
+    Azikiwe University, Nigeria. <https://www.ijeijournal.com/papers/Vol13-Issue7/1307116124.pdf>

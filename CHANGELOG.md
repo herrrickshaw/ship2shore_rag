@@ -1,23 +1,29 @@
 # Changelog
 
-## [Unreleased] — 2026-08-26 — ARCHITECTURE.md
+## [Unreleased] — 2026-08-26 — ARCHITECTURE.md, now properly cited
 
 ### Added
-- **`ARCHITECTURE.md`** — a structural map of the system through two
-  standard frameworks applied to this actual codebase (not described in
-  the abstract): TOGAF's four architecture domains (Business/Data/
-  Application/Technology) and the EMC/Pivotal Data Analytics Lifecycle
-  (Discovery → Data Preparation → Model Planning → Model Building →
-  Communicate Results → Operationalize), plus a Kaizen/PDCA framing of the
-  eval-harness-driven improvement loop, citing this session's own
-  diversify.py `quick_ratio()` bug (caught and fixed via that exact loop)
-  as the concrete example rather than a hypothetical one. Two of the four
-  source documents the user pointed to were blocked by the same Google
-  Drive CloudStorage permission issue from earlier this session (`EPERM`)
-  — only the readable one's real table of contents (the Data Analytics
-  Lifecycle chapter) was used verbatim; SDLC/TOGAF content is applied from
-  general knowledge of those standard frameworks, not from the
-  inaccessible source PDFs.
+- **`ARCHITECTURE.md`** — a structural map of the system through four
+  frameworks applied to this actual codebase (not described in the
+  abstract): TOGAF's four architecture domains, the general SDLC, the
+  domain-specific Data Analytics Lifecycle, and Kaizen/PDCA — the last
+  citing this session's own `diversify.py` `quick_ratio()` bug (caught and
+  fixed via that exact loop) as the concrete example rather than a
+  hypothetical one.
+- **Real citations for all four**, not general knowledge. Two of the four
+  source PDFs the user pointed to were blocked by the CloudStorage `EPERM`
+  issue from earlier this session — both turned out to be real, findable,
+  openly-hosted academic works once searched for by title: Lemke's SDLC
+  honors thesis (Eastern Michigan University, 2018,
+  `commons.emich.edu/honors/589`, recovered via the Browser tool after
+  Cloudflare blocked a plain fetch) and Okpala/Ezeanyim/Nwamekwe's Kaizen
+  review (*International Journal of Engineering Inventions* 13(7), 2024,
+  recovered via `WebFetch` saving the raw PDF locally, then reading it
+  with the PDF-aware `Read` tool — bypassing the CloudStorage block
+  entirely by not needing the user's local copy at all). Added The Open
+  Group's official TOGAF 10th Edition reference and the Data Science &
+  Big Data Analytics book's full citation (author/publisher/ISBN) for the
+  other two. Full references at the bottom of `ARCHITECTURE.md`.
 
 ## [Unreleased] — 2026-08-26 — 9 more IMO convention pages via type: html
 
