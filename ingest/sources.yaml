@@ -128,3 +128,18 @@ pdf_sources:
   # 500 Internal Server Error under the hood ("Coming Soon" stub content
   # only), confirmed live 2026-08-26. Skipped rather than ingesting a
   # broken stub; retry later if IMO fixes the page.
+
+  # Port State Control regime — directly relevant to the casualty/
+  # detention literature already in this corpus (Piotroski-detention
+  # arxiv papers, NTSB/MAIB reports). IACS's about page and Paris MoU's
+  # own inspections page were checked and found to be mostly nav-menu
+  # boilerplate (<2000-6000 chars, minimal real prose) — skipped rather
+  # than padding the corpus with low-content pages.
+  - url: "https://www.parismou.org/about-us/organisation"
+    title: "Paris MoU — Port State Control"
+    license: "Paris MoU — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/OurWork/HumanElement/Pages/Default.aspx"
+    title: "The Human Element (IMO)"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html

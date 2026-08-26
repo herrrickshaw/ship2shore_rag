@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Port State Control literature via type: html
+
+### Added
+- **Paris MoU's "About Us" page and IMO's Human Element overview** added
+  to `sources.yaml` as `type: html` entries — directly relevant to the
+  casualty/detention literature already in the corpus (the PSC-detention
+  arXiv papers, NTSB/MAIB reports). Checked several other PSC-adjacent
+  pages first (IACS's about page, Paris MoU's own inspections page) and
+  skipped them — under 2,000–6,000 chars of mostly nav-menu boilerplate,
+  not worth ingesting. Corpus: 624 → 626 documents.
+
 ## [Unreleased] — 2026-08-26 — ARCHITECTURE.md, now properly cited
 
 ### Added
