@@ -104,6 +104,17 @@ def cmd_crew_signoff(args):
     print(f"crew #{args.crew_id} signed off {args.date}")
 
 
+def cmd_crew_expiring_certs(args):
+    certs = store.list_expiring_certs(days_ahead=args.days)
+    if not certs:
+        print(f"no STCW certificates expiring within {args.days} days")
+        return
+    for c in certs:
+        print(
+            f"#{c['id']}  {c['name']:<20} {c['rank']:<20} {c['vessel_name']:<20} expires {c['stcw_cert_expiry']}"
+        )
+
+
 # ---- log_entries (master/captain/deck/engine log) -------------------------
 
 
@@ -323,6 +334,17 @@ def cmd_safety_list(args):
         )
 
 
+def cmd_safety_reportable(_args):
+    incidents = store.list_reportable_incidents()
+    if not incidents:
+        print("no open critical incidents requiring a flag-State casualty report")
+        return
+    for s in incidents:
+        print(
+            f"#{s['id']}  {s['incident_date']}  {s['vessel_name']:<20} [{s['incident_type']}]  {s['description']}"
+        )
+
+
 def cmd_safety_close(args):
     _authorize(args, "safety:close")
     actor = _actor(args)
@@ -395,6 +417,14 @@ def register(sub) -> None:
     p_signoff.add_argument("--date", required=True, help="sign-off date (YYYY-MM-DD)")
     _add_user_flag(p_signoff)
     p_signoff.set_defaults(func=cmd_crew_signoff)
+    p_expiring = crew_sub.add_parser(
+        "expiring-certs",
+        help="list currently-aboard crew whose STCW certificate has expired or is expiring soon",
+    )
+    p_expiring.add_argument(
+        "--days", type=int, default=30, help="look-ahead window in days (default: 30)"
+    )
+    p_expiring.set_defaults(func=cmd_crew_expiring_certs)
 
     p = sub.add_parser("log", help="master/captain's, deck, and engine logbook entries")
     log_sub = p.add_subparsers(dest="log_command", required=True)
@@ -551,3 +581,8 @@ def register(sub) -> None:
     p_close.add_argument("--corrective-action", default=None)
     _add_user_flag(p_close)
     p_close.set_defaults(func=cmd_safety_close)
+    p_reportable = safety_sub.add_parser(
+        "reportable",
+        help="list open critical incidents that trigger SOLAS I/21's flag-State casualty report",
+    )
+    p_reportable.set_defaults(func=cmd_safety_reportable)

@@ -1,5 +1,41 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Compliance automation: STCW cert expiry + reportable-incident flag
+
+### Added
+- **`ops.store.list_expiring_certs(days_ahead=30)`** — currently-aboard crew
+  (`sign_off_date IS NULL`) whose `stcw_cert_expiry` has already passed or
+  falls within the look-ahead window, joined with vessel name. Wired into
+  `cli.py crew expiring-certs [--days N]` and `GET /crew/expiring-certs?days=N`.
+- **`ops.store.list_reportable_incidents()`** — open (`status='open'`)
+  `safety_incidents` rows with `severity='critical'`, this project's proxy
+  for the SOLAS regulation I/21 threshold (total loss, death, or severe
+  environmental damage) that triggers a flag-State casualty report. Wired
+  into `cli.py safety reportable` and `GET /safety/reportable`.
+
+### Why
+Both `crew.stcw_cert_expiry` and `safety_incidents.severity` have been
+schema fields since the ops module was built, but nothing ever read them —
+confirmed via `grep -n "def " ops/store.py | grep -i "expir\|report\|deadline\|alert"`
+returning zero matches. These are the two highest-value automations
+identified from the newly-ingested regulatory corpus (STCW cert-currency
+compliance, SOLAS I/21 casualty-investigation duty) against the ops
+schema's existing data — no new tables, no new ingestion, both queries run
+identically against Postgres and SQLite via the existing `_Conn` pattern.
+Deliberately **not** vessel-scoped (unlike most `list_*` functions in this
+module) — a fleet-wide actionable list is the point; per-vessel filtering
+is already covered by the existing `crew list --vessel` / `safety list
+<vessel>` commands.
+
+### Rejected alternatives
+- A scheduled/emailed alert (cron job + notification) — out of scope until
+  there's a real mail-sending path in this repo; the query itself is the
+  useful primitive, alerting is a thin wrapper that can be added later.
+- Modeling "reportable" as a new incident-type/flag column rather than a
+  `severity='critical' AND status='open'` filter — `severity` already
+  exists and is the right granularity; a redundant column would need its
+  own maintenance.
+
 ## [Unreleased] — 2026-08-27 — Shipowner/regulator reporting requirements via type: html
 
 ### Added

@@ -317,6 +317,37 @@ def crew_signoff(crew_id: int, sign_off_date: str) -> None:
         )
 
 
+def list_expiring_certs(days_ahead: int = 30) -> list[dict]:
+    """Currently-aboard crew (sign_off_date IS NULL) whose STCW certificate
+    has already expired or expires within days_ahead -- the compliance
+    check STCW actually depends on (a crew member serving on an expired
+    certificate is a real compliance failure), joined with the vessel name
+    so the result is directly actionable without a second lookup. This
+    query existed nowhere before: stcw_cert_expiry has been a schema field
+    since the ops module was built but nothing ever read it for this."""
+    with _Conn() as c:
+        cur = c.execute(
+            """
+            SELECT crew.*, vessels.name AS vessel_name
+            FROM crew JOIN vessels ON vessels.id = crew.vessel_id
+            WHERE crew.stcw_cert_expiry IS NOT NULL
+              AND crew.sign_off_date IS NULL
+              AND crew.stcw_cert_expiry <= CURRENT_DATE + (%s * INTERVAL '1 day')
+            ORDER BY crew.stcw_cert_expiry
+            """,
+            """
+            SELECT crew.*, vessels.name AS vessel_name
+            FROM crew JOIN vessels ON vessels.id = crew.vessel_id
+            WHERE crew.stcw_cert_expiry IS NOT NULL
+              AND crew.sign_off_date IS NULL
+              AND crew.stcw_cert_expiry <= date('now', '+' || ? || ' days')
+            ORDER BY crew.stcw_cert_expiry
+            """,
+            (days_ahead,),
+        )
+        return _rows(cur, c.backend)
+
+
 # ---- log_entries (master/captain/deck/engine log) --------------------------
 
 
@@ -581,6 +612,35 @@ def list_safety_incidents(vessel_id: int, status: str | None = None) -> list[dic
                 "SELECT * FROM safety_incidents WHERE vessel_id = ? ORDER BY incident_date DESC",
                 (vessel_id,),
             )
+        return _rows(cur, c.backend)
+
+
+def list_reportable_incidents() -> list[dict]:
+    """Open safety incidents severe enough to trigger SOLAS regulation I/21's
+    flag-State casualty-investigation duty (total loss of the ship, death,
+    or severe environmental damage -- see ARCHITECTURE.md / the ingested
+    IMO Casualty Investigation page for the actual legal basis).
+    severity='critical' is this project's proxy for that threshold; still
+    open (not yet closed with a corrective action) is the operationally
+    relevant state -- these are the ones that still need the formal report
+    filed. Fleet-wide, not scoped to one vessel, joined with vessel name:
+    the point is a single actionable list, not a per-vessel lookup the
+    existing list_safety_incidents() already covers."""
+    with _Conn() as c:
+        cur = c.execute(
+            """
+            SELECT safety_incidents.*, vessels.name AS vessel_name
+            FROM safety_incidents JOIN vessels ON vessels.id = safety_incidents.vessel_id
+            WHERE safety_incidents.severity = 'critical' AND safety_incidents.status = 'open'
+            ORDER BY safety_incidents.incident_date
+            """,
+            """
+            SELECT safety_incidents.*, vessels.name AS vessel_name
+            FROM safety_incidents JOIN vessels ON vessels.id = safety_incidents.vessel_id
+            WHERE safety_incidents.severity = 'critical' AND safety_incidents.status = 'open'
+            ORDER BY safety_incidents.incident_date
+            """,
+        )
         return _rows(cur, c.backend)
 
 

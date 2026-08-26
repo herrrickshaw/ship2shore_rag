@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import date, timedelta
 
 import pytest
 
@@ -140,3 +141,57 @@ def test_safety_close_with_no_body_still_authorizes(client):
     # FastAPI still required *a* body before the fix.
     resp = client.post(f"/safety/{incident['id']}/close", headers={"X-User": "Captain Ahab"})
     assert resp.status_code == 200
+
+
+def test_crew_expiring_certs(client):
+    client.post("/users", json={"name": "Captain Ahab", "role": "master"})
+    client.post("/vessels", json={"name": "MV Test"}, headers={"X-User": "Captain Ahab"})
+    soon = (date.today() + timedelta(days=10)).isoformat()
+    far = (date.today() + timedelta(days=90)).isoformat()
+    client.post(
+        "/crew",
+        json={
+            "name": "Jane Doe",
+            "rank": "Chief Officer",
+            "vessel": "MV Test",
+            "stcw_cert_expiry": soon,
+        },
+        headers={"X-User": "Captain Ahab"},
+    )
+    client.post(
+        "/crew",
+        json={
+            "name": "John Roe",
+            "rank": "Second Officer",
+            "vessel": "MV Test",
+            "stcw_cert_expiry": far,
+        },
+        headers={"X-User": "Captain Ahab"},
+    )
+
+    resp = client.get("/crew/expiring-certs")
+    assert resp.status_code == 200
+    names = [c["name"] for c in resp.json()]
+    assert names == ["Jane Doe"]
+
+
+def test_safety_reportable(client):
+    client.post("/users", json={"name": "Captain Ahab", "role": "master"})
+    client.post("/vessels", json={"name": "MV Test"}, headers={"X-User": "Captain Ahab"})
+    client.post(
+        "/vessels/MV Test/safety",
+        json={
+            "incident_type": "incident",
+            "description": "Total loss of steering",
+            "severity": "critical",
+        },
+    )
+    client.post(
+        "/vessels/MV Test/safety",
+        json={"incident_type": "near_miss", "description": "Loose grating", "severity": "low"},
+    )
+
+    resp = client.get("/safety/reportable")
+    assert resp.status_code == 200
+    descriptions = [i["description"] for i in resp.json()]
+    assert descriptions == ["Total loss of steering"]

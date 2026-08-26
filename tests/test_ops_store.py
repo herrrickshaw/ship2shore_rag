@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import date, timedelta
 
 import pytest
 
@@ -110,3 +111,50 @@ def test_safety_incident_report_and_close(sqlite_store):
     )
     closed = sqlite_store.list_safety_incidents(vid, status="closed")
     assert closed[0]["corrective_action"] == "Grating re-secured"
+
+
+def test_list_expiring_certs(sqlite_store):
+    vid = sqlite_store.add_vessel("MV Tester")
+    today = date.today()
+    soon = sqlite_store.add_crew(
+        "Jane Doe",
+        "Chief Officer",
+        vessel_id=vid,
+        stcw_cert_expiry=str(today + timedelta(days=10)),
+    )
+    sqlite_store.add_crew(
+        "John Roe",
+        "Second Officer",
+        vessel_id=vid,
+        stcw_cert_expiry=str(today + timedelta(days=90)),
+    )
+    signed_off = sqlite_store.add_crew(
+        "Off Duty",
+        "Third Officer",
+        vessel_id=vid,
+        stcw_cert_expiry=str(today + timedelta(days=1)),
+    )
+    sqlite_store.crew_signoff(signed_off, str(today))
+    sqlite_store.add_crew("No Cert", "Deck Crew", vessel_id=vid)
+
+    expiring = sqlite_store.list_expiring_certs(days_ahead=30)
+    assert [c["id"] for c in expiring] == [soon]
+    assert expiring[0]["vessel_name"] == "MV Tester"
+
+    assert sqlite_store.list_expiring_certs(days_ahead=5) == []
+
+
+def test_list_reportable_incidents(sqlite_store):
+    vid = sqlite_store.add_vessel("MV Tester")
+    critical_open = sqlite_store.add_safety_incident(
+        vid, "incident", "Total loss of steering", severity="critical"
+    )
+    critical_closed = sqlite_store.add_safety_incident(
+        vid, "incident", "Engine room fire, contained", severity="critical"
+    )
+    sqlite_store.close_safety_incident(critical_closed, closed_by=None)
+    sqlite_store.add_safety_incident(vid, "near_miss", "Loose grating", severity="low")
+
+    reportable = sqlite_store.list_reportable_incidents()
+    assert [i["id"] for i in reportable] == [critical_open]
+    assert reportable[0]["vessel_name"] == "MV Tester"

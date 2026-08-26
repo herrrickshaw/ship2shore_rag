@@ -194,6 +194,11 @@ def signoff_crew(crew_id: int, body: SignoffIn, user: dict | None = Depends(curr
     return {"ok": True}
 
 
+@app.get("/crew/expiring-certs")
+def list_expiring_certs(days: int = 30):
+    return store.list_expiring_certs(days_ahead=days)
+
+
 # ---- log_entries -------------------------------------------------------------
 
 
@@ -428,6 +433,11 @@ def report_safety_incident(
 def list_safety_incidents(name_or_imo: str, status: Literal["open", "closed"] | None = None):
     vessel = resolve_vessel(name_or_imo)
     return store.list_safety_incidents(vessel["id"], status=status)
+
+
+@app.get("/safety/reportable")
+def list_reportable_incidents():
+    return store.list_reportable_incidents()
 
 
 class CloseIncidentIn(BaseModel):
