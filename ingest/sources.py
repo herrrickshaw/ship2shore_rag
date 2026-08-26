@@ -4,6 +4,7 @@ Each fetcher returns a list of dicts: {"source", "url", "title", "text", "licens
 No paywalled or ToS-restricted sites are scraped here — add those yourself in
 sources.yaml only if you have the right to ingest them.
 """
+
 import io
 import re
 import time
@@ -21,6 +22,9 @@ WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 MAIB_FEED = "https://www.gov.uk/maib-reports.atom"
 UKHO_NTM_WEEKLY = "https://msi.admiralty.co.uk/NoticesToMariners/Weekly"
 UKHO_NTM_DOWNLOAD = "https://msi.admiralty.co.uk/NoticesToMariners/DownloadFile"
+NTSB_CAROL_BASE = "https://data.ntsb.gov/carol-main-public"
+NTSB_REPORT_BASE = "https://www.ntsb.gov/investigations/AccidentReports/Reports"
+NTSB_REPORT_NUMBER_RE = re.compile(r"^[A-Z]{2,5}\d{2,6}$")
 # e.g. DownloadFile?fileName=36wknm26.pdf&amp;batchId=<uuid>&amp;mimeType=... — matches
 # only the main weekly booklet ("wknm"), not the per-chart correction PDFs also
 # listed on the same page.
@@ -95,7 +99,9 @@ def fetch_arxiv(query: str, max_results: int = 20) -> list[dict]:
     return out
 
 
-def fetch_arxiv_seed(queries: list[str] | None = None, max_results_per_query: int = 15) -> list[dict]:
+def fetch_arxiv_seed(
+    queries: list[str] | None = None, max_results_per_query: int = 15
+) -> list[dict]:
     """Runs the built-in seed queries — general maritime/shipping literature plus
     casualty/accident-analysis literature (the most active academic RAG sub-area
     per the market survey) — and dedupes across queries by URL."""
@@ -225,6 +231,99 @@ def fetch_ntm(max_results: int = 10) -> list[dict]:
     return out
 
 
+def fetch_ntsb(max_results: int = 30) -> list[dict]:
+    """NTSB marine-accident investigation reports — U.S. government works, public
+    domain under 17 U.S.C. Sec 105 (same basis as the hand-curated MIR entries
+    already in sources.yaml).
+
+    NTSB's CAROL search UI (data.ntsb.gov/carol-main-public) has no published
+    API docs, but it's a Vaadin/Polymer single-page app whose search grid is
+    populated by a plain, unauthenticated JSON endpoint underneath
+    (api/Query/Main), reached after a throwaway api/Session/CreateSession call
+    — confirmed live via the browser's network panel while running a real
+    Mode=Marine search, then replicated with a bare requests.Session() with no
+    cookies/login/API key and no Cloudflare challenge in the way. We query it
+    filtered to Mode=Marine, keep only cases whose ReportNumber looks like a
+    real published report (e.g. "MIR2625", "MAB2126", "MAR2105" — CAROL also
+    returns non-report placeholders like "Closeout"/"Memo"/"NA" for cases with
+    no PDF, which this filters out), and download each report PDF from the
+    same predictable ntsb.gov URL pattern already used for the 3 hand-curated
+    entries. A HEAD request confirms a real PDF before downloading, since
+    ntsb.gov returns HTTP 200 with an HTML "not found" page (not a 404) for a
+    guessed report number that doesn't exist."""
+    session = requests.Session()
+    session.headers.update(HEADERS)
+
+    resp = None
+    for attempt, backoff in enumerate((0, 10, 30)):
+        if backoff:
+            time.sleep(backoff)
+        resp = session.post(f"{NTSB_CAROL_BASE}/api/Session/CreateSession", timeout=30)
+        if resp.status_code != 429:
+            break
+    resp.raise_for_status()
+    session_id = resp.json()
+
+    template_resp = session.get(f"{NTSB_CAROL_BASE}/api/Query/BasicSearchTemplate", timeout=30)
+    template_resp.raise_for_status()
+    query = template_resp.json()
+    mode_rule = next(r for r in query["QueryGroups"][0]["QueryRules"] if r["FieldName"] == "Mode")
+    mode_rule["Values"] = ["Marine"]
+
+    search_body = {
+        "ResultSetSize": 1000,  # currently ~590 total marine cases; comfortably above that
+        "ResultSetOffset": 0,
+        "QueryGroups": query["QueryGroups"],
+        "AndOr": "And",
+        "SortColumn": None,
+        "SortDescending": True,
+        "TargetCollection": "cases",
+        "SessionId": session_id,
+    }
+    search_resp = session.post(f"{NTSB_CAROL_BASE}/api/Query/Main", json=search_body, timeout=60)
+    search_resp.raise_for_status()
+    cases = search_resp.json().get("Results", [])
+
+    out = []
+    for case in cases:
+        if len(out) >= max_results:
+            break
+        fields = {f["FieldName"]: f["Values"] for f in case.get("Fields", [])}
+        report_numbers = fields.get("ReportNumber") or []
+        if not report_numbers or not NTSB_REPORT_NUMBER_RE.match(report_numbers[0]):
+            continue
+        report_no = report_numbers[0]
+        url = f"{NTSB_REPORT_BASE}/{report_no}.pdf"
+
+        try:
+            head = session.head(url, timeout=30, allow_redirects=True)
+        except requests.exceptions.RequestException as e:
+            print(f"  skipping {report_no}: {type(e).__name__}: {e}")
+            continue
+        if head.status_code != 200 or "pdf" not in head.headers.get("Content-Type", "").lower():
+            continue  # soft-404: ntsb.gov serves an HTML page with status 200 for a missing report
+
+        city = (fields.get("City") or [""])[0]
+        state = (fields.get("State") or [""])[0]
+        location = ", ".join(p for p in (city, state) if p)
+        title = f"NTSB Marine Accident Report {report_no}" + (f" — {location}" if location else "")
+        published_at = (fields.get("ReportDate") or fields.get("EventDate") or [None])[0]
+
+        try:
+            doc = fetch_pdf(
+                url, title=title, license="U.S. government work — public domain (17 U.S.C. Sec 105)"
+            )
+        except Exception as e:
+            print(f"  skipping {report_no}: {type(e).__name__}: {e}")
+            continue
+        if doc:
+            doc["source"] = "ntsb"
+            doc["published_at"] = published_at
+            out.append(doc)
+        time.sleep(0.5)  # be polite to ntsb.gov
+    return out
+
+
 def fetch_pdf(url: str, title: str | None = None, license: str | None = None) -> dict | None:
     resp = None
     last_error = None
@@ -242,7 +341,9 @@ def fetch_pdf(url: str, title: str | None = None, license: str | None = None) ->
         raise last_error
     reader = PdfReader(io.BytesIO(resp.content))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
-    text = text.replace("\x00", "")  # malformed PDFs can yield NUL bytes; Postgres text columns reject them
+    text = text.replace(
+        "\x00", ""
+    )  # malformed PDFs can yield NUL bytes; Postgres text columns reject them
     if not text.strip():
         return None
     return {

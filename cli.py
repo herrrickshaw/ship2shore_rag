@@ -11,6 +11,7 @@ from ingest.sources import (
     fetch_arxiv_seed,
     fetch_maib,
     fetch_ntm,
+    fetch_ntsb,
     fetch_pdf_sources,
     fetch_wikipedia,
 )
@@ -32,6 +33,8 @@ def cmd_ingest(args) -> None:
         docs = fetch_maib(args.max_results)
     elif args.source == "ntm":
         docs = fetch_ntm(args.max_results)
+    elif args.source == "ntsb":
+        docs = fetch_ntsb(args.max_results)
     elif args.source == "file":
         if not args.path:
             raise SystemExit('--source file requires --path (a glob, e.g. "./docs/**/*.pdf")')
@@ -41,6 +44,19 @@ def cmd_ingest(args) -> None:
 
     count = ingest_documents(docs)
     print(f"ingested {count} new document(s) from {len(docs)} fetched ({args.source})")
+
+
+def cmd_serve(_args) -> None:
+    import os
+
+    import uvicorn
+
+    from webui.server import app
+
+    host = os.environ.get("WEBUI_HOST", "127.0.0.1")
+    port = int(os.environ.get("WEBUI_PORT", "8020"))
+    print(f"serving web UI at http://{host}:{port} (set WEBUI_HOST/WEBUI_PORT to change)")
+    uvicorn.run(app, host=host, port=port)
 
 
 def cmd_export_sqlite(args) -> None:
@@ -93,7 +109,9 @@ def main() -> None:
         help="pull literature into the corpus from a source (arXiv, Wikipedia, MAIB, NtM, PDF, or local files)",
     )
     p_ingest.add_argument(
-        "--source", required=True, choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "file"]
+        "--source",
+        required=True,
+        choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "ntsb", "file"],
     )
     p_ingest.add_argument(
         "--query", default=None, help="arxiv search query (omit to run the built-in seed queries)"
@@ -126,7 +144,7 @@ def main() -> None:
     p_ask.add_argument(
         "--source-filter",
         default=None,
-        choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "file"],
+        choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "ntsb", "file"],
         help="only consider documents from this ingestion source",
     )
     p_ask.add_argument(
@@ -151,6 +169,11 @@ def main() -> None:
         "eval",
         help="run the retrieval eval harness (recall@k / MRR against eval/queries.yaml, rerank on vs off)",
     ).set_defaults(func=lambda _args: run_eval())
+
+    sub.add_parser(
+        "serve",
+        help="serve the read-only web UI (localhost only by default — see README 'Web UI')",
+    ).set_defaults(func=cmd_serve)
 
     ops_cli.register(sub)
 

@@ -66,7 +66,8 @@ python3 cli.py init-db
 python3 cli.py ingest --source arxiv          # runs the seed queries (below) — omit --query for this
 python3 cli.py ingest --source wikipedia
 python3 cli.py ingest --source maib --max-results 30       # UK casualty reports, via gov.uk's Atom feed
-python3 cli.py ingest --source pdf --config ingest/sources.yaml   # NTSB reports + anything you curate
+python3 cli.py ingest --source ntsb --max-results 30        # US marine reports, via CAROL's search API
+python3 cli.py ingest --source pdf --config ingest/sources.yaml   # anything you curate by hand
 
 # Ingest your own local files — PDF, TXT, Markdown, HTML, Word, Excel, or PowerPoint
 python3 cli.py ingest --source file --path "./docs/**/*"
@@ -86,21 +87,24 @@ python3 cli.py ask "what caused the Dali allision?" --export briefing.txt   # pl
 ## How it works
 
 ```
-ingest/sources.py       -> fetches raw documents (arXiv API, Wikipedia API, MAIB Atom feed, PDF URLs)
+ingest/sources.py       -> fetches raw documents (arXiv, Wikipedia, MAIB Atom feed, NTSB CAROL API, PDF URLs)
 ingest/loaders.py        -> loads local files instead — PDF, TXT/MD, HTML, DOCX, XLSX, PPTX
 ingest/chunk.py            -> splits documents into overlapping word-window chunks
 ingest/embed.py              -> embeds chunks locally (sentence-transformers)
-ingest/ingest.py               -> orchestrates fetch -> chunk -> embed -> upsert into pgvector
-retrieval/retriever.py           -> hybrid retrieval: dense cosine + Postgres full-text, fused via RRF
-retrieval/sqlite_store.py         -> same hybrid retrieval against the vessel-side SQLite snapshot
-retrieval/rerank.py                -> cross-encoder scores + sorts the candidate pool (no cut)
-retrieval/diversify.py               -> final top-k cut: per-source cap + near-duplicate skip
-retrieval/query_log.py                 -> appends one JSON line per ask() call to query_log.jsonl
-rag/pipeline.py                          -> builds a cited prompt from top-k chunks, calls Claude (optional)
-rag/export.py                              -> renders an answer + sources as a compact HTML/text report
-db/schema.sql                                -> documents + chunks tables, ivfflat cosine + GIN full-text index
-ingest/export_sqlite.py                        -> snapshots the Postgres corpus into a single portable SQLite file
-eval/evaluate.py                                 -> Recall@k / MRR against eval/queries.yaml (cli.py eval)
+ingest/freshness.py           -> content_hash so re-ingesting a changed URL updates it in place
+ingest/ingest.py                -> orchestrates fetch -> chunk -> embed -> upsert (postgres or sqlite)
+retrieval/retriever.py            -> hybrid retrieval: dense cosine + Postgres full-text, fused via RRF
+retrieval/sqlite_store.py          -> same hybrid retrieval against the vessel-side SQLite snapshot
+retrieval/rerank.py                  -> cross-encoder scores + sorts the candidate pool (no cut)
+retrieval/diversify.py                 -> final top-k cut: per-source cap + near-duplicate skip
+retrieval/query_log.py                   -> appends one JSON line per ask() call to query_log.jsonl
+rag/pipeline.py                            -> builds a cited prompt from top-k chunks, calls Claude (optional)
+rag/cite_check.py                            -> flags out-of-range / weakly-grounded [n] citations
+rag/export.py                                  -> renders an answer + sources as a compact HTML/text report
+db/schema.sql                                    -> documents + chunks tables, ivfflat cosine + GIN full-text index
+ingest/export_sqlite.py                            -> snapshots the Postgres corpus into a portable SQLite file
+eval/evaluate.py                                     -> Recall@k / MRR against eval/queries.yaml (cli.py eval)
+webui/server.py                                        -> small read-only FastAPI app (cli.py serve)
 ```
 
 Retrieval fuses two rankings via [Reciprocal Rank
@@ -133,14 +137,19 @@ measurable, not just eyeballed — `cli.py eval` runs Recall@k/MRR from
 | `wikipedia` | A curated list of maritime-topic articles | CC BY-SA 4.0 |
 | `maib` | UK Marine Accident Investigation Branch reports, discovered via `gov.uk/maib-reports.atom` | Open Government Licence v3.0 |
 | `ntm` | UKHO ADMIRALTY weekly Notices to Mariners bulletin (the main booklet, not the per-chart correction PDFs) | UKHO/ADMIRALTY — free to download for navigational use; verify terms before redistribution |
-| `pdf` | Anything in `ingest/sources.yaml` — seeded with NTSB marine accident reports | varies; NTSB reports are U.S. government works (public domain, 17 U.S.C. §105) |
+| `ntsb` | US NTSB marine accident reports, discovered via CAROL's search API | U.S. government work — public domain (17 U.S.C. §105) |
+| `pdf` | Anything in `ingest/sources.yaml` — seeded with a handful of NTSB reports and arXiv papers found by name rather than through the seed queries | varies; verify per entry |
 | `file` | Your own local files — see `--path` above | whatever license the file itself carries — verify before ingesting |
 
-NTSB has no stable public feed like MAIB's Atom feed (its search UI, CAROL, is a
-private JS API) — report URLs there are curated by hand. Find more at
-[data.ntsb.gov/carol-main-public](https://data.ntsb.gov/carol-main-public/basic-search)
-(Mode = Marine); report PDFs live at a predictable path,
-`ntsb.gov/investigations/AccidentReports/Reports/MIR####.pdf`.
+NTSB has no *documented* public API, but CAROL's search UI
+(`data.ntsb.gov/carol-main-public`) is backed by a plain, unauthenticated JSON
+endpoint (`api/Query/Main`, after a throwaway `api/Session/CreateSession`
+call) that `fetch_ntsb()` queries directly (`Mode=Marine`), discovering and
+downloading report PDFs (`MIR`/`MAB`/`MAR`-prefixed) rather than relying on
+hand-curated URLs. Verified live 2026-08-26 (~450 real marine reports
+discoverable this way); if NTSB changes CAROL's internals this may need
+re-verifying — the small hand-picked set in `ingest/sources.yaml` is kept as
+a fallback either way.
 
 UKHO's weekly Notices to Mariners page (`msi.admiralty.co.uk/NoticesToMariners/Weekly`)
 issues a fresh download token per page load, so `fetch_ntm()` is a two-step
@@ -396,16 +405,23 @@ for development and for driving a frontend that also runs locally.
   (a different category of feature — real-time sensor data + ML, not a CRUD
   table like everything else in this module).
 
+## Web UI
+
+`cli.py serve` starts a small dedicated FastAPI app (`webui/`, separate from
+`api.py`'s ops REST API — read-only, no credentials needed) serving a
+single self-contained page (`webui/index.html`, no build step) at
+`http://127.0.0.1:8020` by default. Binds to localhost only unless
+`WEBUI_HOST` is set explicitly — there's no auth here, so it must not be
+reachable from the network by accident. Works against either backend
+(`STORAGE_BACKEND=postgres` or `sqlite`), same as the CLI.
+
 ## Not yet done
 
-- No web UI — CLI only.
-- No incremental re-crawl/freshness tracking (documents are upserted by URL; no
-  change detection yet).
-- No chunk-level citation verification (unlike this user's other research repos,
-  there is no `cite_check.py` wired in here yet).
-- No automated NTSB crawler (CAROL's API isn't public/documented — see Sources).
-- Citation traceability is source-link only; no per-paragraph / regulation-version
-  tracking yet (the DNV RuleAgent / Vibylabs temporal-knowledge-graph pattern from
-  the market survey is a documented future direction, not implemented).
+- Citation traceability is source-link + per-citation grounding check
+  (`rag/cite_check.py` flags out-of-range or weakly-grounded `[n]`
+  citations against the actually-retrieved passages), but not yet
+  per-paragraph / regulation-version tracking (the DNV RuleAgent /
+  Vibylabs temporal-knowledge-graph pattern from the market survey is a
+  documented future direction, not implemented).
 - `--export` writes a report file — it does not send email itself. Attach or
   paste it into your mail client of choice.

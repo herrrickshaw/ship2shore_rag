@@ -1,5 +1,49 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Close the remaining "Not yet done" gaps
+
+Orchestrated build (per the `unlazy` skill's Depth Tree method, gates-and-
+evidence discipline — `ruflo`'s swarm/agent-spawn tooling was configured but
+unreachable, `claude mcp list` timing out on both `ruflo` and its
+`claude-flow` alias, so the Agent tool substituted as the actual per-leaf
+fresh-context dispatch mechanism). Four independent, file-disjoint leaves,
+each formally re-verified by re-running its gates myself rather than
+trusting its self-report (per the skill's stated verification hierarchy).
+`PLAN.md`/`gates/` in the repo root have the full contract and evidence
+trail if you want the details behind any of these.
+
+### Added
+- **Incremental re-crawl / freshness tracking.** `documents.content_hash`
+  (sha256 of the fetched text) lets re-ingesting an already-seen URL tell
+  "unchanged" (skip, previous behavior) apart from "changed" (re-chunk/
+  re-embed in place instead of silent skip or duplicate) — `ingest/
+  freshness.py`, `ingest/ingest.py` rewritten to dispatch on
+  `STORAGE_BACKEND` like `retrieval/retriever.py` already does. Verified
+  live against both backends: ingest, mutate, re-ingest — chunks replaced
+  correctly, document id stable.
+- **Chunk-level citation verification.** `rag/cite_check.py` checks a
+  generated answer's `[n]` markers against the passages actually retrieved:
+  flags out-of-range citations (hallucinated numbering) and weakly-grounded
+  ones (a real passage number whose content doesn't actually support the
+  citing sentence — word-set Jaccard overlap, no LLM call). Run against a
+  real query on the live corpus during verification, it correctly caught
+  both an out-of-range citation and a sentence that actually contradicted
+  its cited passage's real content, not just loosely paraphrased it.
+- **Automated NTSB crawler.** The README's prior claim — "CAROL's API isn't
+  public/documented" — turned out to be wrong when actually investigated
+  live: `data.ntsb.gov/carol-main-public`'s search grid is backed by a
+  plain, unauthenticated JSON endpoint, reverse-engineered from the app's
+  own unminified client JS and confirmed by replicating the whole flow from
+  a bare Python `requests.Session()` outside the browser. `fetch_ntsb()`
+  (`ingest/sources.py`, additive-only) discovers ~450 real marine reports
+  this way vs. the 3 that were hand-curated before — `cli.py ingest
+  --source ntsb`.
+- **Minimal web UI.** `cli.py serve` — a small dedicated FastAPI app
+  (`webui/`, separate from `api.py`'s ops REST API: read-only, no
+  credentials) serving one self-contained HTML page. Localhost-only by
+  default (`WEBUI_HOST` to opt into anything else). Works against both
+  storage backends.
+
 ## [Unreleased] — 2026-08-26 — Lint tooling, test coverage, SQLite FTS5 crash fix
 
 ### Added
