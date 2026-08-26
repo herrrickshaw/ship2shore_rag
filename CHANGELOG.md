@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Shipowner/regulator reporting requirements via type: html
+
+### Added
+- **4 sources on mandatory reporting obligations**: IMO's Casualty
+  Investigation page (flag-State duties under SOLAS I/21, MARPOL
+  articles 8/12, UNCLOS article 94, and the Casualty Investigation
+  Code — IMO's own dedicated casualty-investigation page 500s the same
+  way COLREGs did earlier, so this covers the same legal basis with
+  real text instead), IMO's Data Collection System (mandatory fuel oil
+  consumption reporting since 2019), and two EU pages on the MRV/ETS
+  emissions monitoring-reporting-verification regime (the general ETS
+  extension page and a detailed FAQ covering monitoring plans, per-voyage
+  monitoring, and verifier accreditation). Checked and rejected gov.uk's
+  "report an accident at sea" guidance (404) and USCG's casualty-reporting
+  office page (pure nav menu, no real prose on the actual requirement)
+  first. Corpus: 628 → 632 documents (54 chunks).
+- Verified genuinely retrievable: 2 of 3 spot-check queries surfaced the
+  new content directly; a third ("reporting requirements... for
+  casualties") got crowded out by the many MAIB/NTSB casualty *reports*
+  themselves (same corpus-scale competition effect documented earlier
+  this session) — a more specific query matching the page's actual legal
+  citations ("SOLAS regulation I/21 flag state duty...") correctly ranks
+  it 1st.
+
 ## [Unreleased] — 2026-08-27 — MCA "About us" via type: html
 
 ### Added

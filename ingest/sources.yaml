@@ -164,3 +164,30 @@ pdf_sources:
     title: "About us — Maritime and Coastguard Agency (MCA)"
     license: "Open Government Licence v3.0"
     type: html
+
+  # Shipowner/regulator reporting obligations — casualty investigation
+  # duties and emissions monitoring/reporting/verification requirements.
+  # IMO's own casualty-investigation page (MSAS/Pages/CasualtyInvestigations)
+  # is broken (500 under a "Coming Soon" stub, same failure mode as
+  # COLREGs earlier); the Casualties.aspx page below covers the same
+  # SOLAS/MARPOL/UNCLOS/Casualty Investigation Code legal basis with real
+  # substantive text instead. gov.uk's "report an accident at sea" guidance
+  # page and USCG's casualty-reporting office page were both checked and
+  # rejected (404, and pure nav-menu boilerplate with no real prose on the
+  # actual requirement, respectively).
+  - url: "https://www.imo.org/en/OurWork/MSAS/Pages/Casualties.aspx"
+    title: "Casualty Investigation — flag State reporting duties (IMO)"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.imo.org/en/OurWork/Environment/Pages/Data-Collection-System.aspx"
+    title: "IMO Data Collection System — mandatory fuel oil consumption reporting"
+    license: "IMO — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://climate.ec.europa.eu/areas-action/transport-decarbonisation/reducing-emissions-shipping-sector_en"
+    title: "Reducing emissions from the shipping sector — EU ETS extension to maritime"
+    license: "European Commission — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector/faq-monitoring-reporting-and-verification-maritime-transport-emissions_en"
+    title: "FAQ — EU Monitoring, Reporting and Verification (MRV) of shipping emissions"
+    license: "European Commission — informational page, verify terms before redistribution"
+    type: html
