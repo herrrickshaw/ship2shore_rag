@@ -1,6 +1,7 @@
 """Retrieve top-k chunks, then either generate a cited answer with Claude
 (if ANTHROPIC_API_KEY is set) or return the ranked passages (extractive fallback)."""
 from config import ANTHROPIC_API_KEY
+from retrieval.query_log import log_query
 from retrieval.retriever import retrieve
 
 SYSTEM_PROMPT = (
@@ -21,7 +22,10 @@ def ask(question: str, top_k: int = 5, generate: bool = True, rerank: bool = Tru
     if not passages:
         return {"answer": "No documents ingested yet — run `cli.py ingest` first.", "passages": []}
 
-    if not generate or not ANTHROPIC_API_KEY:
+    will_generate = generate and bool(ANTHROPIC_API_KEY)
+    log_query(question, passages, top_k=top_k, rerank=rerank, generated=will_generate)
+
+    if not will_generate:
         return {"answer": None, "passages": passages}
 
     import anthropic

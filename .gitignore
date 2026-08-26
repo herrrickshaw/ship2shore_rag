@@ -9,3 +9,4 @@ __pycache__/
 /ship2shore.sqlite3
 graphify-out/
 warehouse/ship_telemetry.duckdb
+query_log.jsonl

@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Query/retrieval logging
+
+### Added
+- **`retrieval/query_log.py`** — appends one JSON line per `ask()` call
+  (question, top_k, rerank flag, retrieved passages with both RRF and
+  rerank scores, whether generation ran) to `query_log.jsonl` (gitignored).
+  Nothing logged a query before this. Phase 1 of a plan to make retrieval
+  quality measurable rather than vibes-based: this is what the eval query
+  set (next) gets seeded from. A logging failure can't break an answer —
+  wrapped in `try/except OSError`.
+
 ## [Unreleased] — 2026-08-26 — Cross-encoder reranking
 
 ### Added
