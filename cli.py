@@ -1,5 +1,6 @@
 import argparse
 
+import ops_cli
 from db.init_db import main as init_db
 from ingest.ingest import ingest_documents
 from ingest.loaders import fetch_local_files
@@ -85,6 +86,8 @@ def main() -> None:
     p_export = sub.add_parser("export-sqlite", help="snapshot Postgres corpus to a portable SQLite file for vessel deployment")
     p_export.add_argument("--output", default=None, help="defaults to SQLITE_PATH from config")
     p_export.set_defaults(func=cmd_export_sqlite)
+
+    ops_cli.register(sub)
 
     args = parser.parse_args()
     args.func(args)

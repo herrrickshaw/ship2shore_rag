@@ -185,6 +185,91 @@ at [`snapshots/`](snapshots/README.md) — a real vessel deployment would
 generate its own via `export-sqlite` rather than rely on a committed one, but
 it's there as a working example and for quick testing.
 
+## Operations module
+
+Everything above is the literature/RAG side — free public documents, answered
+via retrieval. Alongside it, a separate **operations module** tracks the
+transactional records a vessel actually generates day to day: vessel
+particulars, crew, logbooks, engineering/EPC records, and fuel. It's a
+distinct concern from the RAG corpus (structured records vs. free-text
+literature) but shares this project's two defining constraints: it must run
+offline on a vessel, and it must not pretend to be bigger than it is.
+
+### Entities
+
+| Table | What | CLI |
+|---|---|---|
+| `users` | Crew/staff identities + role, for attribution and access control | `cli.py user add/list` |
+| `vessels` | Ship particulars — IMO number, flag, type, tonnage, main engine | `cli.py vessel add/list` |
+| `crew` | Seafarer onboarding — rank, nationality, STCW cert + expiry, sign-on/off | `cli.py crew add/list/signoff` |
+| `log_entries` | Master/captain's log, deck log, engine log — timestamped, geolocated free text | `cli.py log add/list` |
+| `equipment` | Engineering asset registry (main engine, generators, etc.) per vessel | `cli.py equipment add/list` |
+| `spare_parts` | EPC (Electronic Parts Catalog) — part numbers/stock tied to equipment | `cli.py parts add/list` |
+| `maintenance_jobs` | Repair/maintenance history — job type, description, running hours, parts used | `cli.py maintenance add/list` |
+| `fuel_log` | Bunkering/consumption/ROB events | `cli.py fuel add/list` |
+
+### IAM — scoped to what a CLI tool actually needs
+
+This is **not** web authentication — no passwords, no sessions, no login
+screen. That would be the wrong shape of complexity for a local CLI tool, the
+same way a full Postgres server is the wrong shape for a vessel's onboard PC.
+Instead, IAM here means exactly two things:
+
+1. **Identity**: pass `--user "<name>"` on any command (or set
+   `SHIP2SHORE_USER` in `.env`), matched against a name registered via
+   `cli.py user add`. This is who a log entry or maintenance job gets
+   attributed to.
+2. **Authorization**: a small role → allowed-actions table in `ops/auth.py`.
+   A `deck_crew` user cannot write a captain's log entry or add a vessel; a
+   `chief_engineer` can log maintenance and fuel but not sign crew on/off.
+   Unlisted actions (all the `list` commands) are unrestricted — read access
+   isn't the thing worth gating here.
+
+Roles: `master`, `chief_engineer`, `officer`, `deck_crew`, `engine_crew`,
+`shore_staff`. See `ops/auth.py:PERMISSIONS` for the full action → role map —
+it's a plain dict, easy to extend.
+
+```bash
+python3 cli.py user add "Captain Ahab" --role master
+python3 cli.py user add "Deck Hand" --role deck_crew
+
+python3 cli.py vessel add "MV Example" --imo 9999999 --type "container ship" --user "Captain Ahab"
+python3 cli.py log add "MV Example" captain "Departed port, all clear." --lat 51.9 --lon 4.5 --user "Captain Ahab"
+python3 cli.py log add "MV Example" captain "..." --user "Deck Hand"   # denied — wrong role
+
+python3 cli.py equipment add "MV Example" "Main Engine" --manufacturer "MAN B&W" --user "Chief Engineer"
+python3 cli.py parts add 1 "PN-9001" "Cylinder liner" --qty 2 --user "Chief Engineer"
+python3 cli.py maintenance add 1 repair "Replaced cylinder liner #4" --hours 34500 --parts-used "PN-9001 x1" --user "Chief Engineer"
+python3 cli.py fuel add "MV Example" VLSFO bunkering 800 --rob 1450 --location Rotterdam --user "Chief Engineer"
+```
+
+### Offline-first, same as the literature corpus
+
+`ops/store.py` dispatches on the same `STORAGE_BACKEND` switch as retrieval:
+Postgres shore-side, a separate single-file SQLite database (`OPS_SQLITE_PATH`,
+default `ship2shore_ops.sqlite3`) vessel-side. This one's deliberately *not*
+the same file as the literature snapshot (`SQLITE_PATH`) — that file is a
+read-only distributed copy regenerated from Postgres; this one is live data
+being written to at sea, and conflating "distributed snapshot" with "source
+of truth being written to" would be a real design mistake, not a simplification.
+There's no sync-back-to-shore mechanism yet (see below).
+
+### Honest scope
+
+- **Not multi-vessel fleet software.** Nothing here aggregates across
+  vessels or syncs vessel → shore. A real fleet operator needs that; it's a
+  substantial feature this project doesn't have.
+- **Not a replacement for statutory logs.** A ship's official logbook has
+  legal requirements (format, retention, inspection) this tool doesn't
+  attempt to satisfy — treat `log_entries` as a searchable digital
+  supplement, not the vessel's legal record of account.
+- **The captain's-log/EPC pattern is a starting shape, not a finished
+  product** — it covers the entities asked for (IAM, seafarer onboarding,
+  ship particulars, master/captain's log, EPC + repair history, fuel log) at
+  the depth a CLI tool can reasonably carry, matching the shape of the
+  commercial systems surveyed earlier (ABS Nautical Systems' PMS, Marcura's
+  disbursement/repair tracking) without their scale or their proprietary data.
+
 ## Not yet done
 
 - No web UI — CLI only.

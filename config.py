@@ -30,3 +30,9 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 # See README "Shipboard deployment" for why this split exists.
 STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "postgres")
 SQLITE_PATH = os.environ.get("SQLITE_PATH", str(ROOT / "ship2shore.sqlite3"))
+
+# Operations module (crew/vessel/logs/maintenance) uses the same STORAGE_BACKEND
+# switch but its own SQLite file — it's live data written to at sea, not a
+# read-only literature snapshot, so keeping it separate from SQLITE_PATH avoids
+# conflating "distributed copy" with "source of truth being written to".
+OPS_SQLITE_PATH = os.environ.get("OPS_SQLITE_PATH", str(ROOT / "ship2shore_ops.sqlite3"))
