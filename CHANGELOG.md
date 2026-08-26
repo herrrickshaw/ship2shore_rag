@@ -1,5 +1,36 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Document metadata + query-time filtering
+
+### Added
+- **`documents.published_at`** (nullable) — Postgres via `ALTER TABLE
+  documents ADD COLUMN IF NOT EXISTS` in `db/schema.sql` (no separate
+  migration mechanism needed, `init_db.py` already re-executes the schema
+  idempotently); SQLite via a `try/except sqlite3.OperationalError`-guarded
+  `ALTER TABLE` in `sqlite_store.create_schema()` (SQLite has no `ADD
+  COLUMN IF NOT EXISTS`).
+- **`fetch_arxiv`/`fetch_maib`** (`ingest/sources.py`) now extract the Atom
+  feed's `<published>`/`<updated>` date — both feeds already carried it,
+  unused until now. `wikipedia`/`pdf`/`file` have no real publish-date
+  source and stay `None`.
+- **`retriever.retrieve(..., since=, source_filter=)`** — post-filters the
+  candidate pool by publish date / ingestion source before reranking/
+  diversify. First version, documented limitation: an aggressive filter can
+  shrink the pool below `top_k` since RRF/`fetch_k` don't know about it yet
+  (verified live: `--since 2026-01-01` on a query whose only 2026-dated
+  match wasn't in that query's RRF pool correctly returned zero results
+  rather than silently substituting something older).
+- **`cli.py ask --since YYYY-MM-DD` / `--source-filter`** — CLI exposure,
+  mirroring the existing `--no-generate`/`--no-rerank` flag pattern.
+
+Phase 5 (final phase) of the measurable-retrieval plan. Verified live
+end-to-end: `cli.py init-db` applied the migration to the running Postgres
+instance; ingesting a new arXiv paper populated `published_at`
+(`2026-05-13T10:30:07+05:30`); `cli.py export-sqlite` carried it through to
+the SQLite snapshot (131 documents / 1,884 chunks); `--source-filter
+wikipedia` and `--since` both filtered correctly. Eval harness confirmed no
+regression (recall@5=0.93 / MRR unchanged both rerank settings).
+
 ## [Unreleased] — 2026-08-26 — Context-budget guard
 
 ### Added

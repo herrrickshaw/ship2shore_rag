@@ -1,4 +1,5 @@
 import argparse
+from datetime import date
 
 import ops_cli
 from db.init_db import main as init_db
@@ -45,7 +46,15 @@ def cmd_export_sqlite(args) -> None:
 
 
 def cmd_ask(args) -> None:
-    result = ask(args.question, top_k=args.top_k, generate=not args.no_generate, rerank=not args.no_rerank)
+    since = date.fromisoformat(args.since) if args.since else None
+    result = ask(
+        args.question,
+        top_k=args.top_k,
+        generate=not args.no_generate,
+        rerank=not args.no_rerank,
+        since=since,
+        source_filter=args.source_filter,
+    )
     if result["answer"]:
         print(result["answer"])
         print()
@@ -81,6 +90,8 @@ def main() -> None:
     p_ask.add_argument("--top-k", type=int, default=5)
     p_ask.add_argument("--no-generate", action="store_true")
     p_ask.add_argument("--no-rerank", action="store_true", help="skip the cross-encoder reranking pass, use RRF fusion order as-is")
+    p_ask.add_argument("--since", default=None, metavar="YYYY-MM-DD", help="only consider documents published/reported on or after this date (only arxiv/maib have a real date; others are excluded when this is set)")
+    p_ask.add_argument("--source-filter", default=None, choices=["arxiv", "wikipedia", "pdf", "maib", "ntm", "file"], help="only consider documents from this ingestion source")
     p_ask.add_argument("--export", default=None, help="write a compact report to this path (.html, .txt, or .md)")
     p_ask.add_argument("--format", default=None, choices=["html", "txt", "md"], help="defaults to --export's extension")
     p_ask.set_defaults(func=cmd_ask)

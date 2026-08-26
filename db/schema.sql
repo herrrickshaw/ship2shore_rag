@@ -9,6 +9,13 @@ CREATE TABLE IF NOT EXISTS documents (
     fetched_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Nullable: only arxiv/maib fetchers actually have a real publish/report
+-- date to extract (wikipedia/pdf/file don't). init_db.py re-executes this
+-- whole script idempotently on every run, and Postgres 9.6+ supports
+-- ADD COLUMN IF NOT EXISTS directly, so this needs no separate migration
+-- mechanism.
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS chunks (
     id           SERIAL PRIMARY KEY,
     document_id  INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,

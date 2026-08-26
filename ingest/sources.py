@@ -79,6 +79,7 @@ def fetch_arxiv(query: str, max_results: int = 20) -> list[dict]:
         title = entry.findtext("atom:title", default="", namespaces=ns).strip()
         summary = entry.findtext("atom:summary", default="", namespaces=ns).strip()
         url = entry.findtext("atom:id", default="", namespaces=ns).strip()
+        published = entry.findtext("atom:published", default=None, namespaces=ns)
         if not url or not summary:
             continue
         out.append(
@@ -88,6 +89,7 @@ def fetch_arxiv(query: str, max_results: int = 20) -> list[dict]:
                 "title": title,
                 "text": summary,
                 "license": "arXiv non-exclusive license",
+                "published_at": published,
             }
         )
     return out
@@ -170,6 +172,7 @@ def fetch_maib(max_results: int = 30) -> list[dict]:
     out = []
     for entry in root.findall("atom:entry", ns)[:max_results]:
         title = entry.findtext("atom:title", default="", namespaces=ns).strip()
+        updated = entry.findtext("atom:updated", default=None, namespaces=ns)
         link_el = entry.find("atom:link[@rel='alternate']", ns)
         detail_url = link_el.get("href") if link_el is not None else None
         if not detail_url:
@@ -186,6 +189,7 @@ def fetch_maib(max_results: int = 30) -> list[dict]:
         doc = fetch_pdf(match.group(1), title=title, license="Open Government Licence v3.0")
         if doc:
             doc["source"] = "maib"
+            doc["published_at"] = updated
             out.append(doc)
         time.sleep(0.5)
     return out

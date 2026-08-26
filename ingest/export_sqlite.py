@@ -15,14 +15,17 @@ def export_sqlite(sqlite_path: str = SQLITE_PATH) -> tuple[int, int]:
 
     with psycopg.connect(DATABASE_URL) as pg_conn:
         register_vector(pg_conn)
-        documents = pg_conn.execute("SELECT id, source, url, title, license FROM documents").fetchall()
+        documents = pg_conn.execute(
+            "SELECT id, source, url, title, license, published_at FROM documents"
+        ).fetchall()
 
         lite_conn = sqlite_store.connect(sqlite_path)
         sqlite_store.create_schema(lite_conn)
 
         doc_count = chunk_count = 0
-        for pg_doc_id, source, url, title, license in documents:
-            new_doc_id = sqlite_store.insert_document(lite_conn, source, url, title, license)
+        for pg_doc_id, source, url, title, license, published_at in documents:
+            published_at_str = published_at.isoformat() if published_at else None
+            new_doc_id = sqlite_store.insert_document(lite_conn, source, url, title, license, published_at_str)
             chunks = pg_conn.execute(
                 "SELECT content, embedding FROM chunks WHERE document_id = %s ORDER BY chunk_index",
                 (pg_doc_id,),

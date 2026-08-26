@@ -25,9 +25,9 @@ def ingest_documents(documents: list[dict]) -> int:
                 embeddings = embed_texts(chunks)
 
                 cur.execute(
-                    "INSERT INTO documents (source, url, title, license) "
-                    "VALUES (%s, %s, %s, %s) RETURNING id",
-                    (doc["source"], doc["url"], doc["title"], doc.get("license")),
+                    "INSERT INTO documents (source, url, title, license, published_at) "
+                    "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                    (doc["source"], doc["url"], doc["title"], doc.get("license"), doc.get("published_at")),
                 )
                 doc_id = cur.fetchone()[0]
 

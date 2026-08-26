@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS documents (
     source TEXT NOT NULL,
     url TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
-    license TEXT
+    license TEXT,
+    published_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
@@ -47,13 +48,28 @@ def connect(path: str = SQLITE_PATH) -> sqlite3.Connection:
 
 def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    try:
+        # SQLite has no ADD COLUMN IF NOT EXISTS. export_sqlite() always
+        # deletes and rebuilds SQLITE_PATH fresh, so this only matters for
+        # an older snapshot file (e.g. one already committed to the repo)
+        # reused directly rather than re-exported.
+        conn.execute("ALTER TABLE documents ADD COLUMN published_at TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
 
 
-def insert_document(conn: sqlite3.Connection, source: str, url: str, title: str, license: str | None) -> int:
+def insert_document(
+    conn: sqlite3.Connection,
+    source: str,
+    url: str,
+    title: str,
+    license: str | None,
+    published_at: str | None = None,
+) -> int:
     cur = conn.execute(
-        "INSERT INTO documents (source, url, title, license) VALUES (?, ?, ?, ?)",
-        (source, url, title, license),
+        "INSERT INTO documents (source, url, title, license, published_at) VALUES (?, ?, ?, ?, ?)",
+        (source, url, title, license, published_at),
     )
     return cur.lastrowid
 
@@ -114,7 +130,7 @@ def retrieve(
         placeholders = ",".join("?" * len(top_ids))
         rows = conn.execute(
             f"""
-            SELECT c.id, c.content, d.title, d.url, d.source
+            SELECT c.id, c.content, d.title, d.url, d.source, d.published_at
             FROM chunks c JOIN documents d ON d.id = c.document_id
             WHERE c.id IN ({placeholders})
             """,
@@ -127,6 +143,7 @@ def retrieve(
                 "title": by_id[i][2],
                 "url": by_id[i][3],
                 "source": by_id[i][4],
+                "published_at": by_id[i][5],
                 "score": fused[i],
             }
             for i in top_ids

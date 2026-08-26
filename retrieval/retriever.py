@@ -7,6 +7,8 @@ cosine search with sparse keyword search via Reciprocal Rank Fusion, the
 pattern used for maritime accident-report retrieval in the Multi-Field Hybrid
 RAG paper (arXiv 2606.13249).
 """
+from datetime import date, datetime
+
 import psycopg
 from pgvector import Vector
 from pgvector.psycopg import register_vector
@@ -50,7 +52,7 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
 
             cur.execute(
                 """
-                SELECT c.id, c.content, d.title, d.url, d.source
+                SELECT c.id, c.content, d.title, d.url, d.source, d.published_at
                 FROM chunks c JOIN documents d ON d.id = c.document_id
                 WHERE c.id = ANY(%s)
                 """,
@@ -63,11 +65,35 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
             "title": by_id[i][2],
             "url": by_id[i][3],
             "source": by_id[i][4],
+            "published_at": by_id[i][5],
             "score": fused[i],
         }
         for i in top_ids
         if i in by_id
     ]
+
+
+def _passage_date(published_at) -> date | None:
+    if published_at is None:
+        return None
+    if isinstance(published_at, datetime):
+        return published_at.date()
+    if isinstance(published_at, date):
+        return published_at
+    return datetime.fromisoformat(str(published_at).replace("Z", "+00:00")).date()
+
+
+def _apply_filters(candidates: list[dict], since: date | None, source_filter: str | None) -> list[dict]:
+    """Post-filter: simplest correct implementation, applied after content is
+    already joined in. RRF/fetch_k don't know about these filters, so an
+    aggressive since/source_filter can shrink the candidate pool below
+    top_k — push-down filtering (adding the WHERE clause to the RRF queries
+    themselves) is the fix if that turns out to matter in practice."""
+    if source_filter is not None:
+        candidates = [p for p in candidates if p.get("source") == source_filter]
+    if since is not None:
+        candidates = [p for p in candidates if (_passage_date(p.get("published_at")) or date.min) >= since]
+    return candidates
 
 
 def retrieve(
@@ -77,13 +103,16 @@ def retrieve(
     rrf_k: int = 60,
     rerank: bool = True,
     candidate_k: int = 20,
+    since: date | None = None,
+    source_filter: str | None = None,
 ) -> list[dict]:
     """RRF gives a fused pool ranked by *where* each side placed a chunk, not
     by how relevant it actually is to the query, and says nothing about
     whether two chunks are redundant — so pull a wider candidate_k pool from
     RRF regardless of rerank, let the cross-encoder rescore it (if enabled),
     then let diversify.select() do the final top_k cut, skipping same-source
-    overflow and near-duplicates as it walks down the ranking."""
+    overflow and near-duplicates as it walks down the ranking. since/
+    source_filter narrow the pool before any of that (see _apply_filters)."""
     pool_k = max(top_k, candidate_k)
     if STORAGE_BACKEND == "sqlite":
         from retrieval import sqlite_store
@@ -91,6 +120,8 @@ def retrieve(
         candidates = sqlite_store.retrieve(query, embed_query(query), pool_k, fetch_k, rrf_k)
     else:
         candidates = _retrieve_postgres(query, pool_k, fetch_k, rrf_k)
+
+    candidates = _apply_filters(candidates, since, source_filter)
 
     if rerank:
         candidates = _cross_encoder_rerank(query, candidates)

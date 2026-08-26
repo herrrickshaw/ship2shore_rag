@@ -1,5 +1,7 @@
 """Retrieve top-k chunks, then either generate a cited answer with Claude
 (if ANTHROPIC_API_KEY is set) or return the ranked passages (extractive fallback)."""
+from datetime import date
+
 from config import ANTHROPIC_API_KEY, MAX_CONTEXT_CHARS
 from retrieval.query_log import log_query
 from retrieval.retriever import retrieve
@@ -28,8 +30,15 @@ def _build_context(passages: list[dict], max_chars: int = MAX_CONTEXT_CHARS) -> 
     return "\n\n".join(blocks)
 
 
-def ask(question: str, top_k: int = 5, generate: bool = True, rerank: bool = True) -> dict:
-    passages = retrieve(question, top_k=top_k, rerank=rerank)
+def ask(
+    question: str,
+    top_k: int = 5,
+    generate: bool = True,
+    rerank: bool = True,
+    since: date | None = None,
+    source_filter: str | None = None,
+) -> dict:
+    passages = retrieve(question, top_k=top_k, rerank=rerank, since=since, source_filter=source_filter)
     if not passages:
         return {"answer": "No documents ingested yet — run `cli.py ingest` first.", "passages": []}
 
