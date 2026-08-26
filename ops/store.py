@@ -9,6 +9,7 @@ name, plus a thin higher-level function per entity for readability. No ORM —
 this is a handful of tables for a single-vessel-scale tool, not a reason to
 add a dependency.
 """
+
 import sqlite3
 
 import psycopg
@@ -215,6 +216,7 @@ def _row(cur, backend: str) -> dict | None:
 
 # ---- users ----------------------------------------------------------------
 
+
 def add_user(name: str, role: str, email: str | None = None) -> int:
     with _Conn() as c:
         cur = c.execute(
@@ -241,6 +243,7 @@ def list_users() -> list[dict]:
 
 # ---- vessels ----------------------------------------------------------------
 
+
 def add_vessel(name: str, imo_number: str | None = None, **fields) -> int:
     cols = ["name", "imo_number", *fields.keys()]
     vals = (name, imo_number, *fields.values())
@@ -258,7 +261,9 @@ def add_vessel(name: str, imo_number: str | None = None, **fields) -> int:
 
 def list_vessels() -> list[dict]:
     with _Conn() as c:
-        cur = c.execute("SELECT * FROM vessels ORDER BY name", "SELECT * FROM vessels ORDER BY name")
+        cur = c.execute(
+            "SELECT * FROM vessels ORDER BY name", "SELECT * FROM vessels ORDER BY name"
+        )
         return _rows(cur, c.backend)
 
 
@@ -273,6 +278,7 @@ def get_vessel(name_or_imo: str) -> dict | None:
 
 
 # ---- crew (seafarer onboarding) --------------------------------------------
+
 
 def add_crew(name: str, rank: str, vessel_id: int | None = None, **fields) -> int:
     cols = ["name", "rank", "vessel_id", *fields.keys()]
@@ -313,7 +319,10 @@ def crew_signoff(crew_id: int, sign_off_date: str) -> None:
 
 # ---- log_entries (master/captain/deck/engine log) --------------------------
 
-def add_log_entry(vessel_id: int, log_type: str, entry_text: str, logged_by: int | None = None, **fields) -> int:
+
+def add_log_entry(
+    vessel_id: int, log_type: str, entry_text: str, logged_by: int | None = None, **fields
+) -> int:
     cols = ["vessel_id", "log_type", "entry_text", "logged_by", *fields.keys()]
     vals = (vessel_id, log_type, entry_text, logged_by, *fields.values())
     placeholders_pg = ", ".join(["%s"] * len(cols))
@@ -346,6 +355,7 @@ def list_log_entries(vessel_id: int, log_type: str | None = None) -> list[dict]:
 
 
 # ---- equipment / EPC (spare parts) / maintenance ---------------------------
+
 
 def add_equipment(vessel_id: int, name: str, **fields) -> int:
     cols = ["vessel_id", "name", *fields.keys()]
@@ -397,7 +407,9 @@ def list_parts(equipment_id: int) -> list[dict]:
         return _rows(cur, c.backend)
 
 
-def add_maintenance(equipment_id: int, job_type: str, description: str, performed_by: int | None = None, **fields) -> int:
+def add_maintenance(
+    equipment_id: int, job_type: str, description: str, performed_by: int | None = None, **fields
+) -> int:
     cols = ["equipment_id", "job_type", "description", "performed_by", *fields.keys()]
     vals = (equipment_id, job_type, description, performed_by, *fields.values())
     placeholders_pg = ", ".join(["%s"] * len(cols))
@@ -424,7 +436,10 @@ def list_maintenance(equipment_id: int) -> list[dict]:
 
 # ---- fuel_log ---------------------------------------------------------------
 
-def add_fuel_entry(vessel_id: int, fuel_type: str, event_type: str, quantity_mt: float, **fields) -> int:
+
+def add_fuel_entry(
+    vessel_id: int, fuel_type: str, event_type: str, quantity_mt: float, **fields
+) -> int:
     cols = ["vessel_id", "fuel_type", "event_type", "quantity_mt", *fields.keys()]
     vals = (vessel_id, fuel_type, event_type, quantity_mt, *fields.values())
     placeholders_pg = ", ".join(["%s"] * len(cols))
@@ -451,7 +466,10 @@ def list_fuel_log(vessel_id: int) -> list[dict]:
 
 # ---- purchase_orders (procurement) -----------------------------------------
 
-def add_purchase_order(vessel_id: int, items: str, requested_by: int | None = None, **fields) -> int:
+
+def add_purchase_order(
+    vessel_id: int, items: str, requested_by: int | None = None, **fields
+) -> int:
     cols = ["vessel_id", "items", "requested_by", *fields.keys()]
     vals = (vessel_id, items, requested_by, *fields.values())
     placeholders_pg = ", ".join(["%s"] * len(cols))
@@ -503,6 +521,7 @@ def update_purchase_order_status(po_id: int, status: str) -> None:
 
 # ---- drydock_events ---------------------------------------------------------
 
+
 def add_drydock_event(vessel_id: int, **fields) -> int:
     cols = ["vessel_id", *fields.keys()]
     vals = (vessel_id, *fields.values())
@@ -530,7 +549,10 @@ def list_drydock_events(vessel_id: int) -> list[dict]:
 
 # ---- safety_incidents (QHSE) ------------------------------------------------
 
-def add_safety_incident(vessel_id: int, incident_type: str, description: str, reported_by: int | None = None, **fields) -> int:
+
+def add_safety_incident(
+    vessel_id: int, incident_type: str, description: str, reported_by: int | None = None, **fields
+) -> int:
     cols = ["vessel_id", "incident_type", "description", "reported_by", *fields.keys()]
     vals = (vessel_id, incident_type, description, reported_by, *fields.values())
     placeholders_pg = ", ".join(["%s"] * len(cols))
@@ -562,7 +584,9 @@ def list_safety_incidents(vessel_id: int, status: str | None = None) -> list[dic
         return _rows(cur, c.backend)
 
 
-def close_safety_incident(incident_id: int, closed_by: int | None, corrective_action: str | None = None) -> None:
+def close_safety_incident(
+    incident_id: int, closed_by: int | None, corrective_action: str | None = None
+) -> None:
     with _Conn() as c:
         c.execute(
             "UPDATE safety_incidents SET status = 'closed', closed_by = %s, corrective_action = COALESCE(%s, corrective_action) WHERE id = %s",

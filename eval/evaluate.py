@@ -9,6 +9,7 @@ right passage got retrieved at all. LLM-judged faithfulness/answer-
 relevancy is a different, later concern (generation quality, not
 retrieval), worth adding only once retrieval itself isn't the bottleneck.
 """
+
 from pathlib import Path
 
 import yaml
@@ -35,7 +36,11 @@ def evaluate(k: int = 5, rerank: bool = True, queries: list[dict] | None = None)
 
     hits = sum(1 for r in results if r["rank"] is not None)
     recall_at_k = hits / len(results) if results else 0.0
-    mrr = sum(1 / r["rank"] for r in results if r["rank"] is not None) / len(results) if results else 0.0
+    mrr = (
+        sum(1 / r["rank"] for r in results if r["rank"] is not None) / len(results)
+        if results
+        else 0.0
+    )
     return {"k": k, "rerank": rerank, "recall_at_k": recall_at_k, "mrr": mrr, "results": results}
 
 
@@ -46,7 +51,9 @@ def main() -> None:
     for rerank in (False, True):
         summary = evaluate(rerank=rerank, queries=queries)
         label = "rerank ON " if rerank else "rerank OFF"
-        print(f"[{label}] recall@{summary['k']}={summary['recall_at_k']:.2f}  MRR={summary['mrr']:.3f}")
+        print(
+            f"[{label}] recall@{summary['k']}={summary['recall_at_k']:.2f}  MRR={summary['mrr']:.3f}"
+        )
         for r in summary["results"]:
             status = f"rank {r['rank']}" if r["rank"] else "MISS"
             print(f"    {status:>8}  {r['question']}")

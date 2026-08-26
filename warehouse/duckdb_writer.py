@@ -9,6 +9,7 @@ this project's other repos (global-market-data, agri-commodity-tracker,
 market-correlation-matrices) handle accumulate-then-query data: one process,
 one file, plain SQL.
 """
+
 import argparse
 import json
 from datetime import datetime

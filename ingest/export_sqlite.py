@@ -1,5 +1,6 @@
 """Shore-side: snapshot the Postgres corpus into a single portable SQLite file
 for vessel deployment. Run after ingesting, before syncing aboard."""
+
 import os
 
 import psycopg
@@ -25,7 +26,9 @@ def export_sqlite(sqlite_path: str = SQLITE_PATH) -> tuple[int, int]:
         doc_count = chunk_count = 0
         for pg_doc_id, source, url, title, license, published_at in documents:
             published_at_str = published_at.isoformat() if published_at else None
-            new_doc_id = sqlite_store.insert_document(lite_conn, source, url, title, license, published_at_str)
+            new_doc_id = sqlite_store.insert_document(
+                lite_conn, source, url, title, license, published_at_str
+            )
             chunks = pg_conn.execute(
                 "SELECT content, embedding FROM chunks WHERE document_id = %s ORDER BY chunk_index",
                 (pg_doc_id,),

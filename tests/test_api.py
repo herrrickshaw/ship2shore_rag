@@ -35,7 +35,9 @@ def test_wrong_api_key_denied(client):
 def test_vessel_add_denied_for_deck_crew(client):
     client.post("/users", json={"name": "Deck Hand", "role": "deck_crew"})
     resp = client.post(
-        "/vessels", json={"name": "MV Test", "imo_number": "1111111"}, headers={"X-User": "Deck Hand"}
+        "/vessels",
+        json={"name": "MV Test", "imo_number": "1111111"},
+        headers={"X-User": "Deck Hand"},
     )
     assert resp.status_code == 403
 
@@ -43,7 +45,9 @@ def test_vessel_add_denied_for_deck_crew(client):
 def test_vessel_add_allowed_for_master(client):
     client.post("/users", json={"name": "Captain Ahab", "role": "master"})
     resp = client.post(
-        "/vessels", json={"name": "MV Test", "imo_number": "1111111"}, headers={"X-User": "Captain Ahab"}
+        "/vessels",
+        json={"name": "MV Test", "imo_number": "1111111"},
+        headers={"X-User": "Captain Ahab"},
     )
     assert resp.status_code == 200
     assert client.get("/vessels").json()[0]["name"] == "MV Test"
@@ -110,9 +114,15 @@ def test_unknown_vessel_returns_404(client):
 
 def test_duplicate_imo_returns_clean_409_not_raw_500(client):
     client.post("/users", json={"name": "Captain Ahab", "role": "master"})
-    client.post("/vessels", json={"name": "MV One", "imo_number": "1234567"}, headers={"X-User": "Captain Ahab"})
+    client.post(
+        "/vessels",
+        json={"name": "MV One", "imo_number": "1234567"},
+        headers={"X-User": "Captain Ahab"},
+    )
     resp = client.post(
-        "/vessels", json={"name": "MV Two", "imo_number": "1234567"}, headers={"X-User": "Captain Ahab"}
+        "/vessels",
+        json={"name": "MV Two", "imo_number": "1234567"},
+        headers={"X-User": "Captain Ahab"},
     )
     assert resp.status_code == 409
     assert "detail" in resp.json()

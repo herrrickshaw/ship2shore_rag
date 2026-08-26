@@ -7,6 +7,7 @@ JSONL, gitignored, same convention as this repo's other local-run-output
 files (ship2shore.sqlite3, warehouse/*.duckdb) — no new dependency, no
 schema change, and a logging failure must never break an answer.
 """
+
 import json
 from datetime import datetime, timezone
 from pathlib import Path

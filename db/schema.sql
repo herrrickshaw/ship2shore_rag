@@ -16,6 +16,12 @@ CREATE TABLE IF NOT EXISTS documents (
 -- mechanism.
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
 
+-- sha256 of the raw fetched text. Lets ingest_documents() tell "URL already
+-- seen, content unchanged" (skip) apart from "URL already seen, content
+-- changed" (re-chunk/re-embed in place) without re-diffing old chunk text.
+-- Same idempotent ADD COLUMN IF NOT EXISTS pattern as published_at above.
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS content_hash TEXT;
+
 CREATE TABLE IF NOT EXISTS chunks (
     id           SERIAL PRIMARY KEY,
     document_id  INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,

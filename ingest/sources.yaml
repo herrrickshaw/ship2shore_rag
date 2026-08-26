@@ -60,5 +60,8 @@ pdf_sources:
   - url: "https://arxiv.org/pdf/2605.15937"
     title: "A Retrieval-Enhanced Transformer for Multi-Step Port-of-Call Sequence Prediction in Global Liner Shipping"
     license: "arXiv non-exclusive license"
+  - url: "https://arxiv.org/pdf/2605.18408"
+    title: "Historical Knowledge Graphs for Global Maritime Estimated Time of Arrival"
+    license: "arXiv non-exclusive license"
   # https://www.mdpi.com/1424-8220/26/4/1227 — 403'd on fetch (couldn't
   # verify title/license), skipped rather than guessed.

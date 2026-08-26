@@ -1,6 +1,7 @@
 """Local-file ingestion — supplements the URL-based fetchers in sources.py.
 Supports the file types most literature actually shows up as: PDF, plain
 text/Markdown, HTML, Word, Excel, and PowerPoint documents."""
+
 import glob
 from pathlib import Path
 
@@ -11,7 +12,9 @@ from pypdf import PdfReader
 def _load_pdf(path: Path) -> str:
     reader = PdfReader(str(path))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
-    return text.replace("\x00", "")  # malformed PDFs can yield NUL bytes; Postgres text columns reject them
+    return text.replace(
+        "\x00", ""
+    )  # malformed PDFs can yield NUL bytes; Postgres text columns reject them
 
 
 def _load_text(path: Path) -> str:

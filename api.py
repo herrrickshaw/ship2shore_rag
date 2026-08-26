@@ -13,6 +13,7 @@ the actual access gate for deployment — see README "Operations module API".
 Deliberately does NOT wrap rag/pipeline.py (`ask`) — this is the ops-data
 surface only, matching what was asked for.
 """
+
 import os
 import secrets
 import sqlite3
@@ -43,7 +44,9 @@ def verify_api_key(x_api_key: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="missing or invalid X-API-Key")
 
 
-app = FastAPI(title="ship2shore_rag operations API", version="0.1.0", dependencies=[Depends(verify_api_key)])
+app = FastAPI(
+    title="ship2shore_rag operations API", version="0.1.0", dependencies=[Depends(verify_api_key)]
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten to your frontend's origin before any real deployment
@@ -59,7 +62,10 @@ def handle_unique_violation(_request: Request, _exc: Exception) -> JSONResponse:
     # registered) surfaces as a raw, unhandled 500 with an empty body — bad
     # for any client, and confusing to debug. A clean 409 with a real message
     # is what a duplicate-key conflict actually is.
-    return JSONResponse(status_code=409, content={"detail": "a record with this unique value already exists"})
+    return JSONResponse(
+        status_code=409, content={"detail": "a record with this unique value already exists"}
+    )
+
 
 Role = Literal["master", "chief_engineer", "officer", "deck_crew", "engine_crew", "shore_staff"]
 
@@ -88,6 +94,7 @@ def resolve_vessel(name_or_imo: str) -> dict:
 
 # ---- users ------------------------------------------------------------------
 
+
 class UserIn(BaseModel):
     name: str
     role: Role
@@ -106,6 +113,7 @@ def list_users():
 
 
 # ---- vessels ------------------------------------------------------------------
+
 
 class VesselIn(BaseModel):
     name: str
@@ -138,6 +146,7 @@ def get_vessel(name_or_imo: str):
 
 
 # ---- crew (seafarer onboarding) -----------------------------------------------
+
 
 class CrewIn(BaseModel):
     name: str
@@ -177,6 +186,7 @@ def signoff_crew(crew_id: int, body: SignoffIn, user: dict | None = Depends(curr
 
 # ---- log_entries -------------------------------------------------------------
 
+
 class LogEntryIn(BaseModel):
     log_type: Literal["deck", "engine", "captain"]
     entry_text: str
@@ -189,17 +199,22 @@ def create_log_entry(name_or_imo: str, body: LogEntryIn, user: dict | None = Dep
     authorize(user, f"log:{body.log_type}")
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude={"log_type", "entry_text"}, exclude_none=True)
-    lid = store.add_log_entry(vessel["id"], body.log_type, body.entry_text, logged_by=_actor_id(user), **fields)
+    lid = store.add_log_entry(
+        vessel["id"], body.log_type, body.entry_text, logged_by=_actor_id(user), **fields
+    )
     return {"id": lid}
 
 
 @app.get("/vessels/{name_or_imo}/log")
-def list_log_entries(name_or_imo: str, log_type: Literal["deck", "engine", "captain"] | None = None):
+def list_log_entries(
+    name_or_imo: str, log_type: Literal["deck", "engine", "captain"] | None = None
+):
     vessel = resolve_vessel(name_or_imo)
     return store.list_log_entries(vessel["id"], log_type=log_type)
 
 
 # ---- equipment / EPC (spare parts) / maintenance ---------------------------
+
 
 class EquipmentIn(BaseModel):
     name: str
@@ -210,7 +225,9 @@ class EquipmentIn(BaseModel):
 
 
 @app.post("/vessels/{name_or_imo}/equipment")
-def create_equipment(name_or_imo: str, body: EquipmentIn, user: dict | None = Depends(current_user)):
+def create_equipment(
+    name_or_imo: str, body: EquipmentIn, user: dict | None = Depends(current_user)
+):
     authorize(user, "equipment:add")
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude={"name"}, exclude_none=True)
@@ -252,10 +269,14 @@ class MaintenanceIn(BaseModel):
 
 
 @app.post("/equipment/{equipment_id}/maintenance")
-def create_maintenance(equipment_id: int, body: MaintenanceIn, user: dict | None = Depends(current_user)):
+def create_maintenance(
+    equipment_id: int, body: MaintenanceIn, user: dict | None = Depends(current_user)
+):
     authorize(user, "maintenance:add")
     fields = body.model_dump(exclude={"job_type", "description"}, exclude_none=True)
-    mid = store.add_maintenance(equipment_id, body.job_type, body.description, performed_by=_actor_id(user), **fields)
+    mid = store.add_maintenance(
+        equipment_id, body.job_type, body.description, performed_by=_actor_id(user), **fields
+    )
     return {"id": mid}
 
 
@@ -265,6 +286,7 @@ def list_maintenance(equipment_id: int):
 
 
 # ---- fuel_log -----------------------------------------------------------------
+
 
 class FuelIn(BaseModel):
     fuel_type: str
@@ -279,7 +301,9 @@ def create_fuel_entry(name_or_imo: str, body: FuelIn, user: dict | None = Depend
     authorize(user, "fuel:add")
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude={"fuel_type", "event_type", "quantity_mt"}, exclude_none=True)
-    fid = store.add_fuel_entry(vessel["id"], body.fuel_type, body.event_type, body.quantity_mt, **fields)
+    fid = store.add_fuel_entry(
+        vessel["id"], body.fuel_type, body.event_type, body.quantity_mt, **fields
+    )
     return {"id": fid}
 
 
@@ -291,6 +315,7 @@ def list_fuel(name_or_imo: str):
 
 # ---- procurement --------------------------------------------------------------
 
+
 class PurchaseOrderIn(BaseModel):
     items: str
     equipment_id: int | None = None
@@ -301,7 +326,9 @@ class PurchaseOrderIn(BaseModel):
 
 
 @app.post("/vessels/{name_or_imo}/procurement")
-def create_purchase_order(name_or_imo: str, body: PurchaseOrderIn, user: dict | None = Depends(current_user)):
+def create_purchase_order(
+    name_or_imo: str, body: PurchaseOrderIn, user: dict | None = Depends(current_user)
+):
     authorize(user, "procurement:add")
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude={"items"}, exclude_none=True)
@@ -327,13 +354,16 @@ class StatusIn(BaseModel):
 
 
 @app.patch("/procurement/{po_id}/status")
-def update_purchase_order_status(po_id: int, body: StatusIn, user: dict | None = Depends(current_user)):
+def update_purchase_order_status(
+    po_id: int, body: StatusIn, user: dict | None = Depends(current_user)
+):
     authorize(user, "procurement:approve")
     store.update_purchase_order_status(po_id, body.status)
     return {"ok": True}
 
 
 # ---- drydock_events -------------------------------------------------------------
+
 
 class DrydockIn(BaseModel):
     yard: str | None = None
@@ -346,7 +376,9 @@ class DrydockIn(BaseModel):
 
 
 @app.post("/vessels/{name_or_imo}/drydock")
-def create_drydock_event(name_or_imo: str, body: DrydockIn = DrydockIn(), user: dict | None = Depends(current_user)):
+def create_drydock_event(
+    name_or_imo: str, body: DrydockIn = DrydockIn(), user: dict | None = Depends(current_user)
+):
     authorize(user, "drydock:add")
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude_none=True)
@@ -362,6 +394,7 @@ def list_drydock_events(name_or_imo: str):
 
 # ---- safety_incidents (QHSE) --------------------------------------------------
 
+
 class SafetyIncidentIn(BaseModel):
     incident_type: Literal["near_miss", "incident", "audit", "inspection"]
     description: str
@@ -369,11 +402,15 @@ class SafetyIncidentIn(BaseModel):
 
 
 @app.post("/vessels/{name_or_imo}/safety")
-def report_safety_incident(name_or_imo: str, body: SafetyIncidentIn, user: dict | None = Depends(current_user)):
+def report_safety_incident(
+    name_or_imo: str, body: SafetyIncidentIn, user: dict | None = Depends(current_user)
+):
     # Deliberately unrestricted — see ops/auth.py's comment on "safety:report".
     vessel = resolve_vessel(name_or_imo)
     fields = body.model_dump(exclude={"incident_type", "description"}, exclude_none=True)
-    sid = store.add_safety_incident(vessel["id"], body.incident_type, body.description, reported_by=_actor_id(user), **fields)
+    sid = store.add_safety_incident(
+        vessel["id"], body.incident_type, body.description, reported_by=_actor_id(user), **fields
+    )
     return {"id": sid}
 
 
@@ -388,7 +425,13 @@ class CloseIncidentIn(BaseModel):
 
 
 @app.post("/safety/{incident_id}/close")
-def close_safety_incident(incident_id: int, body: CloseIncidentIn = CloseIncidentIn(), user: dict | None = Depends(current_user)):
+def close_safety_incident(
+    incident_id: int,
+    body: CloseIncidentIn = CloseIncidentIn(),
+    user: dict | None = Depends(current_user),
+):
     authorize(user, "safety:close")
-    store.close_safety_incident(incident_id, _actor_id(user), corrective_action=body.corrective_action)
+    store.close_safety_incident(
+        incident_id, _actor_id(user), corrective_action=body.corrective_action
+    )
     return {"ok": True}

@@ -5,11 +5,28 @@ aboard (USB / low-bandwidth sync). Retrieval here needs nothing but this one
 file: no Postgres, no internet. Generation (Claude) is still optional and still
 needs connectivity — see README "Shipboard deployment".
 """
+
+import re
 import sqlite3
 
 import sqlite_vec
 
 from config import EMBEDDING_DIM, SQLITE_PATH
+
+_WORD_RE = re.compile(r"\w+")
+
+
+def _fts5_query(text: str) -> str:
+    """FTS5's MATCH treats the raw string as query syntax, not plain text --
+    unlike Postgres's plainto_tsquery() on the other backend, a bare "?" (or
+    any of FTS5's other operator characters) is a syntax error, not a
+    literal char to search for, so a completely normal question crashes
+    retrieval outright. Tokenizing and double-quoting each word neutralizes
+    that (a quoted FTS5 term is always literal) while keeping
+    plainto_tsquery's AND-every-lexeme behavior, the closest sqlite-side
+    equivalent."""
+    return " AND ".join(f'"{w}"' for w in _WORD_RE.findall(text))
+
 
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS documents (
@@ -18,7 +35,8 @@ CREATE TABLE IF NOT EXISTS documents (
     url TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     license TEXT,
-    published_at TEXT
+    published_at TEXT,
+    content_hash TEXT
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
@@ -56,6 +74,10 @@ def create_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE documents ADD COLUMN published_at TEXT")
     except sqlite3.OperationalError:
         pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE documents ADD COLUMN content_hash TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
 
 
@@ -66,15 +88,18 @@ def insert_document(
     title: str,
     license: str | None,
     published_at: str | None = None,
+    content_hash: str | None = None,
 ) -> int:
     cur = conn.execute(
-        "INSERT INTO documents (source, url, title, license, published_at) VALUES (?, ?, ?, ?, ?)",
-        (source, url, title, license, published_at),
+        "INSERT INTO documents (source, url, title, license, published_at, content_hash) VALUES (?, ?, ?, ?, ?, ?)",
+        (source, url, title, license, published_at, content_hash),
     )
     return cur.lastrowid
 
 
-def insert_chunks(conn: sqlite3.Connection, document_id: int, chunks: list[str], embeddings: list[list[float]]) -> None:
+def insert_chunks(
+    conn: sqlite3.Connection, document_id: int, chunks: list[str], embeddings: list[list[float]]
+) -> None:
     for i, (content, embedding) in enumerate(zip(chunks, embeddings)):
         cur = conn.execute(
             "INSERT INTO chunks (document_id, chunk_index, content) VALUES (?, ?, ?)",
@@ -111,10 +136,15 @@ def retrieve(
         ).fetchall()
         dense_rank = {row[0]: i for i, row in enumerate(dense_rows)}
 
-        sparse_rows = conn.execute(
-            "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? ORDER BY rank LIMIT ?",
-            (query, fetch_k),
-        ).fetchall()
+        fts_query = _fts5_query(query)
+        sparse_rows = (
+            conn.execute(
+                "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? ORDER BY rank LIMIT ?",
+                (fts_query, fetch_k),
+            ).fetchall()
+            if fts_query
+            else []
+        )
         sparse_rank = {row[0]: i for i, row in enumerate(sparse_rows)}
 
         fused: dict[int, float] = {}

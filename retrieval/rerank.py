@@ -8,6 +8,7 @@ single biggest relevance gain in a hybrid pipeline comes from. Local, no API
 key — same sentence-transformers dependency already used for embeddings,
 just its CrossEncoder class instead of SentenceTransformer.
 """
+
 from functools import lru_cache
 
 from config import RERANKER_MODEL

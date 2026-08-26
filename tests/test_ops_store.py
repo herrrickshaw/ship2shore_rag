@@ -33,7 +33,9 @@ def test_vessel_roundtrip(sqlite_store):
 
 def test_crew_signon_and_signoff(sqlite_store):
     vid = sqlite_store.add_vessel("MV Tester")
-    cid = sqlite_store.add_crew("Jane Doe", "Chief Officer", vessel_id=vid, sign_on_date="2026-01-01")
+    cid = sqlite_store.add_crew(
+        "Jane Doe", "Chief Officer", vessel_id=vid, sign_on_date="2026-01-01"
+    )
     crew = sqlite_store.list_crew(vessel_id=vid)
     assert crew[0]["sign_off_date"] is None
 
@@ -97,10 +99,14 @@ def test_drydock_event(sqlite_store):
 
 def test_safety_incident_report_and_close(sqlite_store):
     vid = sqlite_store.add_vessel("MV Tester")
-    incident_id = sqlite_store.add_safety_incident(vid, "near_miss", "Loose grating", severity="medium")
+    incident_id = sqlite_store.add_safety_incident(
+        vid, "near_miss", "Loose grating", severity="medium"
+    )
     open_incidents = sqlite_store.list_safety_incidents(vid, status="open")
     assert len(open_incidents) == 1
 
-    sqlite_store.close_safety_incident(incident_id, closed_by=None, corrective_action="Grating re-secured")
+    sqlite_store.close_safety_incident(
+        incident_id, closed_by=None, corrective_action="Grating re-secured"
+    )
     closed = sqlite_store.list_safety_incidents(vid, status="closed")
     assert closed[0]["corrective_action"] == "Grating re-secured"

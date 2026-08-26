@@ -1,4 +1,5 @@
 """Local embeddings via sentence-transformers — no API key, no per-call cost."""
+
 from functools import lru_cache
 
 from config import EMBEDDING_MODEL

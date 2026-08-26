@@ -1,8 +1,12 @@
 from rag.export import export, render_html, render_text
 
 PASSAGES = [
-    {"title": "Bill of lading", "url": "https://en.wikipedia.org/wiki/Bill_of_lading",
-     "content": "a bill of lading is a document issued by a carrier", "score": 0.05},
+    {
+        "title": "Bill of lading",
+        "url": "https://en.wikipedia.org/wiki/Bill_of_lading",
+        "content": "a bill of lading is a document issued by a carrier",
+        "score": 0.05,
+    },
 ]
 
 

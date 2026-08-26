@@ -10,6 +10,7 @@ Walking the already-ranked list and skipping what's redundant, rather than
 scoring "diversity" as its own thing, keeps the ranking rerank.py already
 computed intact wherever nothing needs to be dropped.
 """
+
 from difflib import SequenceMatcher
 
 SIMILARITY_THRESHOLD = 0.85
@@ -24,7 +25,10 @@ def _is_near_duplicate(content: str, kept_contents: list[str]) -> bool:
     # letter frequency, not because the text was actually similar. .ratio()
     # is slower (real longest-matching-block comparison) but at pool size
     # ~20 that's still trivial.
-    return any(SequenceMatcher(None, content, kept).ratio() >= SIMILARITY_THRESHOLD for kept in kept_contents)
+    return any(
+        SequenceMatcher(None, content, kept).ratio() >= SIMILARITY_THRESHOLD
+        for kept in kept_contents
+    )
 
 
 def select(passages: list[dict], top_k: int, max_per_source: int = 2) -> list[dict]:

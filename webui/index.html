@@ -1,0 +1,237 @@
+<meta charset="utf-8">
+<title>ship2shore_rag — Ask</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0b1220;
+    --panel: #131c2e;
+    --border: #263349;
+    --text: #e6edf7;
+    --muted: #93a3bd;
+    --accent: #4da3ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+  p.subtitle { color: var(--muted); margin: 0 0 1.5rem; font-size: 0.9rem; }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+  textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; font-size: 0.85rem; color: var(--muted); }
+  .row label { display: flex; align-items: center; gap: 0.35rem; }
+  .row input[type="number"], .row input[type="date"], .row select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.25rem 0.4rem;
+    font-family: inherit;
+  }
+  button {
+    align-self: flex-start;
+    background: var(--accent);
+    color: #06121f;
+    border: none;
+    border-radius: 8px;
+    padding: 0.55rem 1.2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  #status { margin-top: 0.75rem; color: var(--muted); font-size: 0.9rem; min-height: 1.2em; }
+  #answer {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  #answer:empty { display: none; }
+  #passages { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .passage {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+  }
+  .passage h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+  .passage h3 a { color: var(--accent); text-decoration: none; }
+  .passage h3 a:hover { text-decoration: underline; }
+  .passage .meta { color: var(--muted); font-size: 0.78rem; margin-bottom: 0.4rem; }
+  .passage .content { font-size: 0.88rem; line-height: 1.4; color: var(--text); }
+</style>
+
+<main>
+  <h1>ship2shore_rag</h1>
+  <p class="subtitle">Ask a question over the maritime literature corpus. Read-only, local.</p>
+
+  <form id="ask-form">
+    <textarea id="question" placeholder="e.g. What are common causes of bulk carrier hull failure?" required></textarea>
+    <div class="row">
+      <label>top_k <input type="number" id="top_k" value="5" min="1" max="20"></label>
+      <label><input type="checkbox" id="generate" checked> generate answer</label>
+      <label><input type="checkbox" id="rerank" checked> rerank</label>
+      <label>since <input type="date" id="since"></label>
+      <label>source
+        <select id="source_filter">
+          <option value="">any</option>
+          <option value="arxiv">arxiv</option>
+          <option value="wikipedia">wikipedia</option>
+          <option value="pdf">pdf</option>
+          <option value="maib">maib</option>
+          <option value="ntm">ntm</option>
+          <option value="file">file</option>
+        </select>
+      </label>
+    </div>
+    <button type="submit" id="submit-btn">Ask</button>
+  </form>
+
+  <div id="status"></div>
+  <div id="answer"></div>
+  <div id="passages"></div>
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById("ask-form");
+  var statusEl = document.getElementById("status");
+  var answerEl = document.getElementById("answer");
+  var passagesEl = document.getElementById("passages");
+  var submitBtn = document.getElementById("submit-btn");
+
+  function clearChildren(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function renderPassage(p, index) {
+    var card = document.createElement("div");
+    card.className = "passage";
+
+    var h3 = document.createElement("h3");
+    if (p.url) {
+      var link = document.createElement("a");
+      link.href = p.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "[" + (index + 1) + "] " + p.title; // textContent only — never innerHTML with server data
+      h3.appendChild(link);
+    } else {
+      h3.textContent = "[" + (index + 1) + "] " + p.title;
+    }
+    card.appendChild(h3);
+
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    var metaBits = [];
+    if (p.source) metaBits.push(p.source);
+    if (p.published_at) metaBits.push(p.published_at);
+    metaBits.push("score " + p.score.toFixed(4));
+    meta.textContent = metaBits.join(" · ");
+    card.appendChild(meta);
+
+    var content = document.createElement("div");
+    content.className = "content";
+    content.textContent = p.content;
+    card.appendChild(content);
+
+    return card;
+  }
+
+  function render(data) {
+    clearChildren(answerEl);
+    clearChildren(passagesEl);
+
+    if (data.answer) {
+      answerEl.textContent = data.answer;
+    }
+
+    if (!data.passages || data.passages.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "meta";
+      empty.textContent = "No passages returned.";
+      passagesEl.appendChild(empty);
+      return;
+    }
+
+    data.passages.forEach(function (p, i) {
+      passagesEl.appendChild(renderPassage(p, i));
+    });
+  }
+
+  form.addEventListener("submit", function (evt) {
+    evt.preventDefault();
+
+    var question = document.getElementById("question").value.trim();
+    if (!question) return;
+
+    var body = {
+      question: question,
+      top_k: parseInt(document.getElementById("top_k").value, 10) || 5,
+      generate: document.getElementById("generate").checked,
+      rerank: document.getElementById("rerank").checked,
+    };
+    var since = document.getElementById("since").value;
+    if (since) body.since = since;
+    var sourceFilter = document.getElementById("source_filter").value;
+    if (sourceFilter) body.source_filter = sourceFilter;
+
+    submitBtn.disabled = true;
+    statusEl.textContent = "Asking…";
+    clearChildren(answerEl);
+    clearChildren(passagesEl);
+
+    fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then(function (resp) {
+        if (!resp.ok) {
+          return resp.json().catch(function () { return {}; }).then(function (err) {
+            throw new Error(err.detail ? JSON.stringify(err.detail) : ("HTTP " + resp.status));
+          });
+        }
+        return resp.json();
+      })
+      .then(function (data) {
+        statusEl.textContent = "";
+        render(data);
+      })
+      .catch(function (err) {
+        statusEl.textContent = "Error: " + err.message;
+      })
+      .finally(function () {
+        submitBtn.disabled = false;
+      });
+  });
+})();
+</script>

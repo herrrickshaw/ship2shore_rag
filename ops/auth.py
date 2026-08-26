@@ -5,6 +5,7 @@ SHIP2SHORE_USER env var and looked up in the `users` table; authorization is
 then a role check before a sensitive command runs. See README "Operations
 module — IAM" for why this is the right scope here, not full web auth.
 """
+
 import os
 
 ROLES = ("master", "chief_engineer", "officer", "deck_crew", "engine_crew", "shore_staff")
@@ -53,4 +54,6 @@ def require_role(user: dict | None, action: str) -> None:
             "(or set SHIP2SHORE_USER) for a user registered via `cli.py user add`"
         )
     if user["role"] not in allowed:
-        raise AuthError(f"{action!r} requires a role in {sorted(allowed)}, but {user['name']!r} is {user['role']!r}")
+        raise AuthError(
+            f"{action!r} requires a role in {sorted(allowed)}, but {user['name']!r} is {user['role']!r}"
+        )

@@ -1,6 +1,7 @@
 """Renders an ask() result as a compact, standalone report — small enough to
 paste into an email body or attach directly. No external assets (fonts,
 stylesheets, JS), so it stays small and renders the same in any mail client."""
+
 import html as html_lib
 
 
@@ -22,7 +23,7 @@ def render_html(question: str, answer: str | None, passages: list[dict]) -> str:
     )
 
     return (
-        "<!doctype html><html><head><meta charset=\"utf-8\">"
+        '<!doctype html><html><head><meta charset="utf-8">'
         f"<title>{html_lib.escape(question)}</title>"
         "<style>"
         "body{font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:640px;"

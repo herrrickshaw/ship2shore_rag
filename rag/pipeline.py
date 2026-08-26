@@ -1,5 +1,6 @@
 """Retrieve top-k chunks, then either generate a cited answer with Claude
 (if ANTHROPIC_API_KEY is set) or return the ranked passages (extractive fallback)."""
+
 from datetime import date
 
 from config import ANTHROPIC_API_KEY, MAX_CONTEXT_CHARS
@@ -23,7 +24,9 @@ def _build_context(passages: list[dict], max_chars: int = MAX_CONTEXT_CHARS) -> 
     for i, p in enumerate(passages):
         block = f"[{i+1}] {p['title']} ({p['url']})\n{p['content']}"
         if blocks and total + len(block) > max_chars:
-            print(f"context budget ({max_chars} chars) reached — dropped {len(passages) - i} of {len(passages)} passages")
+            print(
+                f"context budget ({max_chars} chars) reached — dropped {len(passages) - i} of {len(passages)} passages"
+            )
             break
         blocks.append(block)
         total += len(block) + 2  # +2 for the "\n\n" join
@@ -38,7 +41,9 @@ def ask(
     since: date | None = None,
     source_filter: str | None = None,
 ) -> dict:
-    passages = retrieve(question, top_k=top_k, rerank=rerank, since=since, source_filter=source_filter)
+    passages = retrieve(
+        question, top_k=top_k, rerank=rerank, since=since, source_filter=source_filter
+    )
     if not passages:
         return {"answer": "No documents ingested yet — run `cli.py ingest` first.", "passages": []}
 

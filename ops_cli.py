@@ -2,6 +2,7 @@
 EPC/maintenance, fuel). Kept separate from cli.py because there are a lot of
 these — see README "Operations module" for the entity list and IAM model.
 """
+
 from ops import store
 from ops.auth import AuthError, current_user_name, require_role
 
@@ -22,11 +23,14 @@ def _authorize(args, action: str) -> None:
 def _resolve_vessel(name_or_imo: str) -> dict:
     vessel = store.get_vessel(name_or_imo)
     if vessel is None:
-        raise SystemExit(f"no vessel matching {name_or_imo!r} — add it first with `cli.py vessel add`")
+        raise SystemExit(
+            f"no vessel matching {name_or_imo!r} — add it first with `cli.py vessel add`"
+        )
     return vessel
 
 
 # ---- users ------------------------------------------------------------------
+
 
 def cmd_user_add(args):
     uid = store.add_user(args.name, args.role, email=args.email)
@@ -39,6 +43,7 @@ def cmd_user_list(_args):
 
 
 # ---- vessels ------------------------------------------------------------------
+
 
 def cmd_vessel_add(args):
     _authorize(args, "vessel:add")
@@ -61,10 +66,13 @@ def cmd_vessel_add(args):
 
 def cmd_vessel_list(_args):
     for v in store.list_vessels():
-        print(f"#{v['id']}  {v['name']:<25} IMO {v.get('imo_number') or '-':<10} {v.get('vessel_type') or ''}")
+        print(
+            f"#{v['id']}  {v['name']:<25} IMO {v.get('imo_number') or '-':<10} {v.get('vessel_type') or ''}"
+        )
 
 
 # ---- crew (seafarer onboarding) -----------------------------------------------
+
 
 def cmd_crew_add(args):
     _authorize(args, "crew:signon")
@@ -98,11 +106,14 @@ def cmd_crew_signoff(args):
 
 # ---- log_entries (master/captain/deck/engine log) -------------------------
 
+
 def cmd_log_add(args):
     _authorize(args, f"log:{args.log_type}")
     vessel = _resolve_vessel(args.vessel)
     actor = _actor(args)
-    fields = {k: v for k, v in {"latitude": args.lat, "longitude": args.lon}.items() if v is not None}
+    fields = {
+        k: v for k, v in {"latitude": args.lat, "longitude": args.lon}.items() if v is not None
+    }
     lid = store.add_log_entry(
         vessel["id"], args.log_type, args.text, logged_by=actor["id"] if actor else None, **fields
     )
@@ -112,10 +123,13 @@ def cmd_log_add(args):
 def cmd_log_list(args):
     vessel = _resolve_vessel(args.vessel)
     for entry in store.list_log_entries(vessel["id"], log_type=args.type):
-        print(f"#{entry['id']}  {entry['entry_time']}  [{entry['log_type']}]  {entry['entry_text']}")
+        print(
+            f"#{entry['id']}  {entry['entry_time']}  [{entry['log_type']}]  {entry['entry_text']}"
+        )
 
 
 # ---- equipment / EPC (spare parts) / maintenance ---------------------------
+
 
 def cmd_equipment_add(args):
     _authorize(args, "equipment:add")
@@ -143,7 +157,9 @@ def cmd_equipment_list(args):
 def cmd_parts_add(args):
     _authorize(args, "parts:add")
     fields = {
-        k: v for k, v in {"manufacturer": args.manufacturer, "stock_quantity": args.qty}.items() if v is not None
+        k: v
+        for k, v in {"manufacturer": args.manufacturer, "stock_quantity": args.qty}.items()
+        if v is not None
     }
     pid = store.add_part(args.equipment_id, args.part_number, args.part_name, **fields)
     print(f"added part #{pid}: {args.part_number} — {args.part_name}")
@@ -163,7 +179,11 @@ def cmd_maintenance_add(args):
         if v is not None
     }
     mid = store.add_maintenance(
-        args.equipment_id, args.job_type, args.description, performed_by=actor["id"] if actor else None, **fields
+        args.equipment_id,
+        args.job_type,
+        args.description,
+        performed_by=actor["id"] if actor else None,
+        **fields,
     )
     print(f"added maintenance job #{mid}: {args.job_type} — {args.description}")
 
@@ -175,23 +195,31 @@ def cmd_maintenance_list(args):
 
 # ---- fuel_log ---------------------------------------------------------------
 
+
 def cmd_fuel_add(args):
     _authorize(args, "fuel:add")
     vessel = _resolve_vessel(args.vessel)
     fields = {
-        k: v for k, v in {"rob_after_mt": args.rob, "location": args.location}.items() if v is not None
+        k: v
+        for k, v in {"rob_after_mt": args.rob, "location": args.location}.items()
+        if v is not None
     }
-    fid = store.add_fuel_entry(vessel["id"], args.fuel_type, args.event_type, args.quantity_mt, **fields)
+    fid = store.add_fuel_entry(
+        vessel["id"], args.fuel_type, args.event_type, args.quantity_mt, **fields
+    )
     print(f"added fuel log #{fid}: {args.event_type} {args.quantity_mt}mt {args.fuel_type}")
 
 
 def cmd_fuel_list(args):
     vessel = _resolve_vessel(args.vessel)
     for f in store.list_fuel_log(vessel["id"]):
-        print(f"#{f['id']}  {f['log_date']}  [{f['event_type']}]  {f['quantity_mt']}mt {f['fuel_type']}  ROB {f.get('rob_after_mt') or '-'}")
+        print(
+            f"#{f['id']}  {f['log_date']}  [{f['event_type']}]  {f['quantity_mt']}mt {f['fuel_type']}  ROB {f.get('rob_after_mt') or '-'}"
+        )
 
 
 # ---- procurement (purchase-to-pay) -----------------------------------------
+
 
 def cmd_procurement_add(args):
     _authorize(args, "procurement:add")
@@ -208,14 +236,18 @@ def cmd_procurement_add(args):
         }.items()
         if v is not None
     }
-    pid = store.add_purchase_order(vessel["id"], args.items, requested_by=actor["id"] if actor else None, **fields)
+    pid = store.add_purchase_order(
+        vessel["id"], args.items, requested_by=actor["id"] if actor else None, **fields
+    )
     print(f"added purchase order #{pid} for {vessel['name']}: {args.items} (status: requested)")
 
 
 def cmd_procurement_list(args):
     vessel = _resolve_vessel(args.vessel)
     for po in store.list_purchase_orders(vessel["id"], status=args.status):
-        print(f"#{po['id']}  [{po['status']}]  {po['items']}  supplier={po.get('supplier') or '-'}  cost={po.get('total_cost') or '-'}")
+        print(
+            f"#{po['id']}  [{po['status']}]  {po['items']}  supplier={po.get('supplier') or '-'}  cost={po.get('total_cost') or '-'}"
+        )
 
 
 def cmd_procurement_approve(args):
@@ -232,6 +264,7 @@ def cmd_procurement_status(args):
 
 
 # ---- drydock_events -----------------------------------------------------------
+
 
 def cmd_drydock_add(args):
     _authorize(args, "drydock:add")
@@ -250,17 +283,22 @@ def cmd_drydock_add(args):
         }.items()
         if v is not None
     }
-    did = store.add_drydock_event(vessel["id"], coordinated_by=actor["id"] if actor else None, **fields)
+    did = store.add_drydock_event(
+        vessel["id"], coordinated_by=actor["id"] if actor else None, **fields
+    )
     print(f"added drydock event #{did} for {vessel['name']}")
 
 
 def cmd_drydock_list(args):
     vessel = _resolve_vessel(args.vessel)
     for d in store.list_drydock_events(vessel["id"]):
-        print(f"#{d['id']}  [{d['status']}]  {d.get('yard') or '-'}  {d.get('planned_start') or '-'} to {d.get('planned_end') or '-'}")
+        print(
+            f"#{d['id']}  [{d['status']}]  {d.get('yard') or '-'}  {d.get('planned_start') or '-'} to {d.get('planned_end') or '-'}"
+        )
 
 
 # ---- safety_incidents (QHSE) ------------------------------------------------
+
 
 def cmd_safety_report(args):
     # Deliberately unrestricted — see ops/auth.py's comment on "safety:report".
@@ -268,7 +306,11 @@ def cmd_safety_report(args):
     actor = _actor(args)
     fields = {k: v for k, v in {"severity": args.severity}.items() if v is not None}
     sid = store.add_safety_incident(
-        vessel["id"], args.incident_type, args.description, reported_by=actor["id"] if actor else None, **fields
+        vessel["id"],
+        args.incident_type,
+        args.description,
+        reported_by=actor["id"] if actor else None,
+        **fields,
     )
     print(f"reported {args.incident_type} #{sid} on {vessel['name']} (status: open)")
 
@@ -276,13 +318,17 @@ def cmd_safety_report(args):
 def cmd_safety_list(args):
     vessel = _resolve_vessel(args.vessel)
     for s in store.list_safety_incidents(vessel["id"], status=args.status):
-        print(f"#{s['id']}  {s['incident_date']}  [{s['incident_type']}/{s['status']}]  {s['description']}")
+        print(
+            f"#{s['id']}  {s['incident_date']}  [{s['incident_type']}/{s['status']}]  {s['description']}"
+        )
 
 
 def cmd_safety_close(args):
     _authorize(args, "safety:close")
     actor = _actor(args)
-    store.close_safety_incident(args.incident_id, actor["id"] if actor else None, corrective_action=args.corrective_action)
+    store.close_safety_incident(
+        args.incident_id, actor["id"] if actor else None, corrective_action=args.corrective_action
+    )
     print(f"safety incident #{args.incident_id} closed")
 
 
@@ -291,16 +337,25 @@ def _add_user_flag(parser):
 
 
 def register(sub) -> None:
-    p = sub.add_parser("user", help="IAM — register users and their role (master/chief_engineer/officer/deck_crew/engine_crew/shore_staff)")
+    p = sub.add_parser(
+        "user",
+        help="IAM — register users and their role (master/chief_engineer/officer/deck_crew/engine_crew/shore_staff)",
+    )
     user_sub = p.add_subparsers(dest="user_command", required=True)
     p_add = user_sub.add_parser("add", help="register a user")
     p_add.add_argument("name")
-    p_add.add_argument("--role", required=True, choices=["master", "chief_engineer", "officer", "deck_crew", "engine_crew", "shore_staff"])
+    p_add.add_argument(
+        "--role",
+        required=True,
+        choices=["master", "chief_engineer", "officer", "deck_crew", "engine_crew", "shore_staff"],
+    )
     p_add.add_argument("--email", default=None)
     p_add.set_defaults(func=cmd_user_add)
     user_sub.add_parser("list", help="list registered users").set_defaults(func=cmd_user_list)
 
-    p = sub.add_parser("vessel", help="ship specifics — IMO number, flag, type, tonnage, main engine")
+    p = sub.add_parser(
+        "vessel", help="ship specifics — IMO number, flag, type, tonnage, main engine"
+    )
     vessel_sub = p.add_subparsers(dest="vessel_command", required=True)
     p_add = vessel_sub.add_parser("add", help="register a vessel")
     p_add.add_argument("name")
@@ -316,7 +371,9 @@ def register(sub) -> None:
     p_add.set_defaults(func=cmd_vessel_add)
     vessel_sub.add_parser("list", help="list registered vessels").set_defaults(func=cmd_vessel_list)
 
-    p = sub.add_parser("crew", help="seafarer onboarding — rank, nationality, STCW certification, sign-on/off")
+    p = sub.add_parser(
+        "crew", help="seafarer onboarding — rank, nationality, STCW certification, sign-on/off"
+    )
     crew_sub = p.add_subparsers(dest="crew_command", required=True)
     p_add = crew_sub.add_parser("add", help="sign a crew member on to a vessel")
     p_add.add_argument("name")
@@ -324,7 +381,9 @@ def register(sub) -> None:
     p_add.add_argument("--vessel", required=True, help="vessel name or IMO number")
     p_add.add_argument("--nationality", default=None)
     p_add.add_argument("--stcw-number", default=None, help="STCW certificate number")
-    p_add.add_argument("--stcw-expiry", default=None, help="STCW certificate expiry date (YYYY-MM-DD)")
+    p_add.add_argument(
+        "--stcw-expiry", default=None, help="STCW certificate expiry date (YYYY-MM-DD)"
+    )
     p_add.add_argument("--sign-on", default=None, help="sign-on date (YYYY-MM-DD)")
     _add_user_flag(p_add)
     p_add.set_defaults(func=cmd_crew_add)
@@ -339,7 +398,9 @@ def register(sub) -> None:
 
     p = sub.add_parser("log", help="master/captain's, deck, and engine logbook entries")
     log_sub = p.add_subparsers(dest="log_command", required=True)
-    p_add = log_sub.add_parser("add", help="add a log entry (captain's-log entries require the master role)")
+    p_add = log_sub.add_parser(
+        "add", help="add a log entry (captain's-log entries require the master role)"
+    )
     p_add.add_argument("vessel", help="vessel name or IMO number")
     p_add.add_argument("log_type", choices=["deck", "engine", "captain"])
     p_add.add_argument("text")
@@ -352,7 +413,9 @@ def register(sub) -> None:
     p_list.add_argument("--type", default=None, choices=["deck", "engine", "captain"])
     p_list.set_defaults(func=cmd_log_list)
 
-    p = sub.add_parser("equipment", help="engineering asset registry (main engine, generators, etc.) per vessel")
+    p = sub.add_parser(
+        "equipment", help="engineering asset registry (main engine, generators, etc.) per vessel"
+    )
     eq_sub = p.add_subparsers(dest="equipment_command", required=True)
     p_add = eq_sub.add_parser("add", help="register a piece of equipment on a vessel")
     p_add.add_argument("vessel")
@@ -381,17 +444,21 @@ def register(sub) -> None:
     p_list.add_argument("equipment_id", type=int)
     p_list.set_defaults(func=cmd_parts_list)
 
-    p = sub.add_parser("maintenance", help="repair/maintenance job history for a piece of equipment")
+    p = sub.add_parser(
+        "maintenance", help="repair/maintenance job history for a piece of equipment"
+    )
     maint_sub = p.add_subparsers(dest="maintenance_command", required=True)
     p_add = maint_sub.add_parser("add", help="log a maintenance/repair job")
     p_add.add_argument("equipment_id", type=int)
     p_add.add_argument("job_type", choices=["scheduled", "breakdown", "repair", "inspection"])
     p_add.add_argument("description")
     p_add.add_argument("--hours", type=float, default=None, help="running hours at time of job")
-    p_add.add_argument("--parts-used", default=None, help="free text, e.g. \"PN-9001 x1\"")
+    p_add.add_argument("--parts-used", default=None, help='free text, e.g. "PN-9001 x1"')
     _add_user_flag(p_add)
     p_add.set_defaults(func=cmd_maintenance_add)
-    p_list = maint_sub.add_parser("list", help="list an equipment's maintenance history, newest first")
+    p_list = maint_sub.add_parser(
+        "list", help="list an equipment's maintenance history, newest first"
+    )
     p_list.add_argument("equipment_id", type=int)
     p_list.set_defaults(func=cmd_maintenance_list)
 
@@ -402,7 +469,9 @@ def register(sub) -> None:
     p_add.add_argument("fuel_type", help="e.g. VLSFO, MGO, LSMGO")
     p_add.add_argument("event_type", choices=["bunkering", "consumption", "ROB"])
     p_add.add_argument("quantity_mt", type=float)
-    p_add.add_argument("--rob", type=float, default=None, help="remaining on board after this event, in mt")
+    p_add.add_argument(
+        "--rob", type=float, default=None, help="remaining on board after this event, in mt"
+    )
     p_add.add_argument("--location", default=None)
     _add_user_flag(p_add)
     p_add.set_defaults(func=cmd_fuel_add)
@@ -414,7 +483,7 @@ def register(sub) -> None:
     proc_sub = p.add_subparsers(dest="procurement_command", required=True)
     p_add = proc_sub.add_parser("add", help="request a purchase order")
     p_add.add_argument("vessel")
-    p_add.add_argument("items", help="free text, e.g. \"PN-9001 Cylinder liner x2\"")
+    p_add.add_argument("items", help='free text, e.g. "PN-9001 Cylinder liner x2"')
     p_add.add_argument("--equipment-id", type=int, default=None)
     p_add.add_argument("--supplier", default=None)
     p_add.add_argument("--cost", type=float, default=None, help="total cost")
@@ -424,15 +493,23 @@ def register(sub) -> None:
     p_add.set_defaults(func=cmd_procurement_add)
     p_list = proc_sub.add_parser("list", help="list a vessel's purchase orders")
     p_list.add_argument("vessel")
-    p_list.add_argument("--status", default=None, choices=["requested", "approved", "ordered", "received", "cancelled"])
+    p_list.add_argument(
+        "--status",
+        default=None,
+        choices=["requested", "approved", "ordered", "received", "cancelled"],
+    )
     p_list.set_defaults(func=cmd_procurement_list)
     p_approve = proc_sub.add_parser("approve", help="approve a requested purchase order")
     p_approve.add_argument("po_id", type=int)
     _add_user_flag(p_approve)
     p_approve.set_defaults(func=cmd_procurement_approve)
-    p_status = proc_sub.add_parser("status", help="update a purchase order's status (e.g. ordered, received)")
+    p_status = proc_sub.add_parser(
+        "status", help="update a purchase order's status (e.g. ordered, received)"
+    )
     p_status.add_argument("po_id", type=int)
-    p_status.add_argument("status", choices=["requested", "approved", "ordered", "received", "cancelled"])
+    p_status.add_argument(
+        "status", choices=["requested", "approved", "ordered", "received", "cancelled"]
+    )
     _add_user_flag(p_status)
     p_status.set_defaults(func=cmd_procurement_status)
 
@@ -455,7 +532,10 @@ def register(sub) -> None:
 
     p = sub.add_parser("safety", help="QHSE — near-miss/incident/audit/inspection reporting")
     safety_sub = p.add_subparsers(dest="safety_command", required=True)
-    p_report = safety_sub.add_parser("report", help="report a near-miss, incident, audit, or inspection (no role restriction — anyone can report)")
+    p_report = safety_sub.add_parser(
+        "report",
+        help="report a near-miss, incident, audit, or inspection (no role restriction — anyone can report)",
+    )
     p_report.add_argument("vessel")
     p_report.add_argument("incident_type", choices=["near_miss", "incident", "audit", "inspection"])
     p_report.add_argument("description")

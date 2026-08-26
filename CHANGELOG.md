@@ -1,5 +1,40 @@
 # Changelog
 
+## [Unreleased] — 2026-08-26 — Lint tooling, test coverage, SQLite FTS5 crash fix
+
+### Added
+- **ruff + black**, matching the exact convention already used across this
+  account's other repos (`global-market-data`, `global-stock-screener`):
+  line-length 100, `[tool.ruff]`/`[tool.black]` in `pyproject.toml`,
+  `.pre-commit-config.yaml` with the same hook versions. `requirements-
+  dev.txt` for the scoped dev-only deps (ruff, black, pre-commit,
+  pytest-cov), matching the `requirements-api.txt`/`requirements-
+  warehouse.txt` scoped-file pattern. Ran across the whole tree: one
+  real issue found (an unsorted import block in `cli.py`), fixed; every
+  other file was already clean.
+- **Unit tests for the retrieval pipeline built this session** — it had
+  zero test coverage (only manually/live-verified) despite being the
+  bulk of today's work: `tests/test_diversify.py` (redundancy filtering),
+  `tests/test_query_log.py`, `tests/test_retriever_filters.py`
+  (`since`/`source_filter` post-filtering). Coverage run
+  (`pytest --cov`) is what surfaced this gap concretely rather than by
+  guess.
+
+### Fixed
+- **SQLite backend crashed on any normal question.** `retrieval/
+  sqlite_store.py`'s FTS5 keyword search passed the raw query string
+  straight into `MATCH`, which treats it as FTS5 query syntax, not plain
+  text (unlike Postgres's `plainto_tsquery()` on the other backend) — a
+  bare `?` (or `"`, `*`, `-`, ...) is a syntax error, not a literal
+  character. Any question ending in `?` — i.e. almost any real question —
+  crashed retrieval outright on the vessel-side/offline backend. Found by
+  the leaf building the web UI (see below), confirmed by independent
+  reproduction, fixed with a `_fts5_query()` helper that tokenizes and
+  double-quotes each word (AND-joined, matching `plainto_tsquery`'s
+  AND-every-lexeme semantics) — a quoted FTS5 term is always literal.
+  Regression test added (`test_retrieve_does_not_crash_on_fts5_special_
+  characters`, parametrized over `?`/`"`/`*`/`-`/empty-string).
+
 ## [Unreleased] — 2026-08-26 — Document metadata + query-time filtering
 
 ### Added

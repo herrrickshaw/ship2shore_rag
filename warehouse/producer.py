@@ -4,6 +4,7 @@ process. Vessel names match the ones already seeded in the Postgres ops
 module (see tests/seed data) so the two sides of the project reference the
 same fleet, but this is synthetic telemetry, not real sensor data.
 """
+
 import argparse
 import json
 import math
@@ -61,7 +62,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--bootstrap", default="localhost:9092")
     parser.add_argument("--interval", type=float, default=1.0, help="seconds between ticks")
-    parser.add_argument("--ticks", type=int, default=None, help="stop after N ticks (default: run forever)")
+    parser.add_argument(
+        "--ticks", type=int, default=None, help="stop after N ticks (default: run forever)"
+    )
     args = parser.parse_args()
 
     producer = KafkaProducer(

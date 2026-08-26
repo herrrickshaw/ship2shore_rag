@@ -7,6 +7,7 @@ cosine search with sparse keyword search via Reciprocal Rank Fusion, the
 pattern used for maritime accident-report retrieval in the Multi-Field Hybrid
 RAG paper (arXiv 2606.13249).
 """
+
 from datetime import date, datetime
 
 import psycopg
@@ -83,7 +84,9 @@ def _passage_date(published_at) -> date | None:
     return datetime.fromisoformat(str(published_at).replace("Z", "+00:00")).date()
 
 
-def _apply_filters(candidates: list[dict], since: date | None, source_filter: str | None) -> list[dict]:
+def _apply_filters(
+    candidates: list[dict], since: date | None, source_filter: str | None
+) -> list[dict]:
     """Post-filter: simplest correct implementation, applied after content is
     already joined in. RRF/fetch_k don't know about these filters, so an
     aggressive since/source_filter can shrink the candidate pool below
@@ -92,7 +95,9 @@ def _apply_filters(candidates: list[dict], since: date | None, source_filter: st
     if source_filter is not None:
         candidates = [p for p in candidates if p.get("source") == source_filter]
     if since is not None:
-        candidates = [p for p in candidates if (_passage_date(p.get("published_at")) or date.min) >= since]
+        candidates = [
+            p for p in candidates if (_passage_date(p.get("published_at")) or date.min) >= since
+        ]
     return candidates
 
 

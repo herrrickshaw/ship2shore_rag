@@ -2,6 +2,7 @@
 Idempotent — safe to re-run. Only applies to the Postgres (shore-side)
 backend; the SQLite (vessel-side) operations schema self-creates on first
 connect (see ops/store.py) since there's no separate init step at sea."""
+
 import psycopg
 
 from config import DATABASE_URL, ROOT
