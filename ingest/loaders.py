@@ -10,7 +10,8 @@ from pypdf import PdfReader
 
 def _load_pdf(path: Path) -> str:
     reader = PdfReader(str(path))
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    return text.replace("\x00", "")  # malformed PDFs can yield NUL bytes; Postgres text columns reject them
 
 
 def _load_text(path: Path) -> str:

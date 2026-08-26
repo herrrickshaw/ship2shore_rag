@@ -238,6 +238,7 @@ def fetch_pdf(url: str, title: str | None = None, license: str | None = None) ->
         raise last_error
     reader = PdfReader(io.BytesIO(resp.content))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    text = text.replace("\x00", "")  # malformed PDFs can yield NUL bytes; Postgres text columns reject them
     if not text.strip():
         return None
     return {

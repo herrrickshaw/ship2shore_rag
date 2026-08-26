@@ -41,3 +41,24 @@ pdf_sources:
 #  - url: "https://unctad.org/system/files/official-document/rmt2024_en.pdf"
 #    title: "UNCTAD Review of Maritime Transport 2024"
 #    license: "UNCTAD open access"
+
+  # Specific arXiv IDs found by name (not via the seed-query search) — added
+  # as direct PDF pulls rather than through --source arxiv since that goes
+  # through the arXiv API search, not exact-ID lookup.
+  - url: "https://arxiv.org/pdf/2505.07553"
+    title: "Towards Requirements Engineering for RAG Systems"
+    license: "arXiv non-exclusive license"
+  - url: "https://arxiv.org/pdf/2606.29721"
+    title: "Redefining Maritime Anomaly Detection via Equation-Grounded Synthetic Anomalies"
+    license: "arXiv non-exclusive license"
+  - url: "https://arxiv.org/pdf/2603.04423"
+    title: "Generating Realistic, Protocol-Compliant Maritime Radio Dialogues using Self-Instruct and Low-Rank Adaptation"
+    license: "arXiv non-exclusive license"
+  - url: "https://arxiv.org/pdf/2608.21036"
+    title: "Evaluating Large Language Model Performance on International Maritime Dangerous Goods Code Compliance"
+    license: "arXiv non-exclusive license"
+  - url: "https://arxiv.org/pdf/2605.15937"
+    title: "A Retrieval-Enhanced Transformer for Multi-Step Port-of-Call Sequence Prediction in Global Liner Shipping"
+    license: "arXiv non-exclusive license"
+  # https://www.mdpi.com/1424-8220/26/4/1227 — 403'd on fetch (couldn't
+  # verify title/license), skipped rather than guessed.
