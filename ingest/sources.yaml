@@ -369,3 +369,29 @@ pdf_sources:
     title: "Service providers for the maritime industry (ISWAN)"
     license: "ISWAN — informational page, verify terms before redistribution"
     type: html
+
+  # Industry-level developments and needs of ship management/crewing
+  # companies (as distinct from a single company's own page, added in the
+  # prior round) — the trade associations that represent them and set
+  # their standards. Checked and rejected: Wallem's site (a malformed
+  # page returning unrelated "vacations" content), V.Group and
+  # Anglo-Eastern (404/empty response), BIMCO's about page (cookie-consent
+  # wall only, same failure mode already noted for BIMCO/Lloyd's Register
+  # earlier in this file), and SAFETY4SEA's crew-shortage tag/article
+  # pages (404).
+  - url: "https://www.intermanager.org/"
+    title: "InterManager — Ship & Crew Management Association"
+    license: "InterManager — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.fleetship.com/about-us/"
+    title: "About Fleet Management (ship management company)"
+    license: "Fleet Management Limited — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.ics-shipping.org/about-ics/"
+    title: "About ICS — International Chamber of Shipping"
+    license: "ICS — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Seafarer%27s_professions_and_ranks"
+    title: "Seafarer's professions and ranks"
+    license: "CC BY-SA 4.0"
+    type: html

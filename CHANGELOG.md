@@ -1,5 +1,35 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Ship-management industry associations and developments via type: html
+
+### Added
+- **4 sources on the industry-level developments and needs of ship
+  management/crewing companies**, complementing the prior round's
+  single-company (Synergy Marine Group) sources with the trade bodies
+  that represent the sector as a whole: InterManager (the only
+  association dedicated to representing the ship management industry —
+  7,500+ ships, 330,000+ seafarers represented, founded 1991 as ISMA),
+  Fleet Management Limited's "About Us" (a major third-party ship
+  manager, 650+ vessels, founded 1994), the International Chamber of
+  Shipping's "About ICS" (the global trade association for shipowners/
+  operators, established 1921, representing 80%+ of the world merchant
+  fleet), and Wikipedia's "Seafarer's professions and ranks" (deck/
+  engine rank hierarchy, complements `ops.crew.rank`). Checked and
+  rejected Wallem's site (a malformed page returning unrelated
+  "vacations" content), V.Group and Anglo-Eastern (404/empty response),
+  BIMCO's about page (cookie-consent wall only — same failure mode
+  already noted for BIMCO/Lloyd's Register earlier in this file), and
+  SAFETY4SEA's crew-shortage tag/article pages (404). Corpus: 668 → 672
+  documents (18,648 chunks).
+- Verified genuinely retrievable: "what industry association represents
+  ship management and crewing companies globally" ranks InterManager and
+  Fleet Management directly in the top 5. The ICS page is mostly
+  cookie-consent boilerplate (8 of 11 chunks) with real substance in
+  only 2–3 — a generic query missed it, but "ICS established in 1921
+  best practices shipowners operators," matching its actual distinguishing
+  content, correctly ranks it #2, confirming it's genuinely present
+  despite the low signal-to-noise ratio.
+
 ## [Unreleased] — 2026-08-27 — Ship-management crewing and seafarer welfare via type: html
 
 ### Added
