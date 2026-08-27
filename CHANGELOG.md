@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Navigation/safety systems, emissions, and chokepoint security via type: html
+
+### Added
+- **11 sources via `type: html`**: ECDIS, Voyage data recorder, COLREGs
+  (International Regulations for Preventing Collisions at Sea), Dynamic
+  positioning, Emission control area, Scrubber (exhaust gas cleaning),
+  and 5 maritime-chokepoint/security topics directly relevant to
+  route-diversion and war-risk questions — Strait of Hormuz,
+  Bab-el-Mandeb, Strait of Malacca, Red Sea crisis, and Houthi attacks on
+  commercial vessels (the ongoing 2023– disruption specifically, kept as
+  two separate articles — crisis overview vs. detailed attack log — same
+  reasoning as keeping Panama Canal and Suez Canal separate). Corpus:
+  644 → 655 documents (18,412 chunks).
+- Verified genuinely retrievable: "how have Houthi attacks in the Red Sea
+  affected shipping routes and insurance" ranks the new Red Sea
+  crisis/Houthi-attacks documents #1–#4 directly. A generic "voyage data
+  recorder" query got crowded out by the many NTSB reports that also
+  discuss VDR data (same corpus-scale competition documented in earlier
+  rounds); a query matching the page's distinguishing content ("SS El
+  Faro voyage data recorder recovered from 15000 feet depth") correctly
+  ranks it #1.
+
 ## [Unreleased] — 2026-08-27 — Vessel-operations reference topics + ivfflat recall fix
 
 ### Added

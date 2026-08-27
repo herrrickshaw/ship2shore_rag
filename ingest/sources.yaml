@@ -249,3 +249,52 @@ pdf_sources:
     title: "Suez Canal"
     license: "CC BY-SA 4.0"
     type: html
+
+  # Navigation/safety systems, emissions control, and maritime chokepoint
+  # security — the Red Sea/Bab-el-Mandeb entries are directly relevant to
+  # the route-diversion and war-risk-insurance questions this corpus needs
+  # to answer given the ongoing Houthi attacks on commercial shipping.
+  - url: "https://en.wikipedia.org/wiki/ECDIS"
+    title: "ECDIS (Electronic Chart Display and Information System)"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Voyage_data_recorder"
+    title: "Voyage data recorder"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/International_Regulations_for_Preventing_Collisions_at_Sea"
+    title: "International Regulations for Preventing Collisions at Sea (COLREGs)"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Dynamic_positioning"
+    title: "Dynamic positioning"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Emission_control_area"
+    title: "Emission control area"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Scrubber"
+    title: "Scrubber (exhaust gas cleaning)"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Strait_of_Hormuz"
+    title: "Strait of Hormuz"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Bab-el-Mandeb"
+    title: "Bab-el-Mandeb"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Strait_of_Malacca"
+    title: "Strait of Malacca"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Red_Sea_crisis"
+    title: "Red Sea crisis"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Houthi_attacks_on_commercial_vessels"
+    title: "Houthi attacks on commercial vessels"
+    license: "CC BY-SA 4.0"
+    type: html
