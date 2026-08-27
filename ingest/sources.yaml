@@ -298,3 +298,48 @@ pdf_sources:
     title: "Houthi attacks on commercial vessels"
     license: "CC BY-SA 4.0"
     type: html
+
+  # Chartering/commercial terms, ship recycling regulation, fuel
+  # management, dangerous goods, and autonomous ships. "Time charter"
+  # was checked and rejected — that title redirects to a horse-racing
+  # article on Wikipedia, not the shipping term; "Chartering (shipping)"
+  # is the correct page and covers time/voyage/bareboat charter types
+  # together. "Ammonia as a marine fuel" and "Methanol marine fuel" were
+  # searched and don't exist as Wikipedia articles — skipped rather than
+  # guessing a URL.
+  - url: "https://en.wikipedia.org/wiki/Chartering_(shipping)"
+    title: "Chartering (shipping)"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Bareboat_charter"
+    title: "Bareboat charter"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Laytime"
+    title: "Laytime"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Ship_breaking"
+    title: "Ship breaking"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Hong_Kong_International_Convention_for_the_Safe_and_Environmentally_Sound_Recycling_of_Ships"
+    title: "Hong Kong International Convention for the Safe and Environmentally Sound Recycling of Ships"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Marine_fuel_management"
+    title: "Marine fuel management"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Liquefied_natural_gas_carrier"
+    title: "LNG carrier"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/International_Maritime_Dangerous_Goods_Code"
+    title: "International Maritime Dangerous Goods (IMDG) Code"
+    license: "CC BY-SA 4.0"
+    type: html
+  - url: "https://en.wikipedia.org/wiki/Maritime_Autonomous_Surface_Ship"
+    title: "Maritime Autonomous Surface Ship (autonomous cargo ship)"
+    license: "CC BY-SA 4.0"
+    type: html

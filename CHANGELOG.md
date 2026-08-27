@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Chartering, ship recycling, fuel management, and dangerous goods via type: html
+
+### Added
+- **9 sources via `type: html`**: Chartering (shipping) — voyage/time/
+  bareboat charter types together, Bareboat charter, Laytime, Ship
+  breaking, the Hong Kong International Convention for ship recycling,
+  Marine fuel management, LNG carrier, International Maritime Dangerous
+  Goods (IMDG) Code, and Maritime Autonomous Surface Ship (autonomous
+  cargo ship). Checked and rejected "Time charter" (that exact title
+  redirects to an unrelated horse-racing article on Wikipedia — used
+  "Chartering (shipping)" instead, which covers the same three charter
+  types together) and "Ammonia as a marine fuel"/"Methanol marine fuel"
+  (no such Wikipedia articles exist — skipped rather than guessing a
+  URL). Corpus: 655 → 664 documents (18,613 chunks).
+- Verified genuinely retrievable: "difference between a voyage charter
+  and a time charter" surfaces both new Chartering/Bareboat-charter
+  documents directly; "Hong Kong Convention ship recycling environmental
+  standards" ranks the new Hong Kong Convention document #2/#3 alongside
+  the related Ship breaking document.
+
 ## [Unreleased] — 2026-08-27 — Navigation/safety systems, emissions, and chokepoint security via type: html
 
 ### Added
