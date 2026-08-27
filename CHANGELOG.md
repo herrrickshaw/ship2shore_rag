@@ -1,5 +1,34 @@
 # Changelog
 
+## [Unreleased] — 2026-08-27 — Ship-management crewing and seafarer welfare via type: html
+
+### Added
+- **4 sources on what shipping service companies actually provide
+  seafarers**, prompted by a direct request to look at Synergy Marine
+  Group specifically: Synergy's "About Us" (company overview — founded
+  2006, Singapore, world's second-largest third-party ship manager),
+  "Crew Management" (its crewing/seafarer-support service description —
+  family communications, payroll transparency, career development,
+  KPI-linked crewing accountability), and "WeTeam" (its i-STEER mental
+  health/wellbeing program — 24-hour helpline, Wellbeing Champions peer
+  support, Family Outreach coordination); plus ISWAN's "Service providers
+  for the maritime industry" page — the sector's leading seafarer-welfare
+  NGO's description of what it commissions *for* shipping companies
+  (dedicated crew helplines, Family Outreach Programme seminars, mental
+  health training). Checked and rejected Sailors' Society's about-us page
+  (a link directory to subpages, no real prose) and Mission to Seafarers'
+  about-us (404); Synergy's "Our Values" (i-STEER) page was real but thin
+  (a one-line-per-value list) — skipped in favor of the three richer
+  Synergy pages. Corpus: 664 → 668 documents (18,652 chunks).
+- Verified genuinely retrievable: "what welfare support does a ship
+  management company provide to seafarers and their families" surfaces
+  all 4 new documents directly in the top 5. A generic "24-hour helpline
+  and wellbeing champions" query got the WeTeam page crowded out by NTSB/
+  MAIB casualty reports that also discuss crew welfare/fatigue (same
+  corpus-scale competition pattern as earlier rounds); a query matching
+  the page's distinguishing content ("i-STEER Wellbeing Champions
+  program") correctly ranks it #2.
+
 ## [Unreleased] — 2026-08-27 — Chartering, ship recycling, fuel management, and dangerous goods via type: html
 
 ### Added

@@ -343,3 +343,29 @@ pdf_sources:
     title: "Maritime Autonomous Surface Ship (autonomous cargo ship)"
     license: "CC BY-SA 4.0"
     type: html
+
+  # Ship-management/crewing companies and seafarer-welfare organizations —
+  # what a shipping service company (Synergy Marine Group, a major global
+  # ship/crew manager) says it actually provides seafarers, and what the
+  # sector's leading welfare NGO (ISWAN) offers companies that commission
+  # it. Checked and rejected: Sailors' Society's about-us page (a link
+  # directory to subpages, no real prose) and Mission to Seafarers'
+  # about-us (404). Synergy's "Our Values" (i-STEER) page was checked too
+  # — real but thin (a short list of one-line value statements) — skipped
+  # in favor of the three richer pages below.
+  - url: "https://www.synergymarinegroup.com/about-us"
+    title: "About Us — Synergy Marine Group (ship management)"
+    license: "Synergy Marine Group — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.synergymarinegroup.com/services/crew-management/"
+    title: "Crew Management — Synergy Marine Group"
+    license: "Synergy Marine Group — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.synergymarinegroup.com/weteam/"
+    title: "WeTeam — seafarer mental health and wellbeing (Synergy Marine Group)"
+    license: "Synergy Marine Group — informational page, verify terms before redistribution"
+    type: html
+  - url: "https://www.seafarerswelfare.org/seafarer-support/services"
+    title: "Service providers for the maritime industry (ISWAN)"
+    license: "ISWAN — informational page, verify terms before redistribution"
+    type: html
