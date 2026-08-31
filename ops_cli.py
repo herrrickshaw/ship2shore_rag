@@ -325,6 +325,15 @@ def cmd_safety_report(args):
     )
     print(f"reported {args.incident_type} #{sid} on {vessel['name']} (status: open)")
 
+    if args.find_similar:
+        from rag.similar_incidents import find_similar_incidents
+
+        similar = find_similar_incidents(args.description)
+        if similar:
+            print("\nSimilar past incidents in the ingested corpus:")
+            for i, p in enumerate(similar, 1):
+                print(f"[{i}] {p['title']} ({p['url']}) — score {p['score']:.4f}")
+
 
 def cmd_safety_list(args):
     vessel = _resolve_vessel(args.vessel)
@@ -352,6 +361,27 @@ def cmd_safety_close(args):
         args.incident_id, actor["id"] if actor else None, corrective_action=args.corrective_action
     )
     print(f"safety incident #{args.incident_id} closed")
+
+
+# ---- fleet (cross-vessel, read-only rollup) --------------------------------
+
+
+def cmd_fleet_status(args):
+    status = store.fleet_status(
+        cert_days_ahead=args.cert_days, drydock_days_ahead=args.drydock_days
+    )
+    print(f"Fleet: {status['vessel_count']} vessel(s)")
+    print(f"Open safety incidents: {len(status['open_incidents'])}")
+    for sev, n in sorted(status["open_incidents_by_severity"].items()):
+        print(f"  {sev}: {n}")
+    print(f"STCW certs expiring within {args.cert_days}d: {len(status['certs_expiring'])}")
+    for c in status["certs_expiring"]:
+        print(
+            f"  {c['name']} ({c['rank']}) on {c['vessel_name']} — expires {c['stcw_cert_expiry']}"
+        )
+    print(f"Drydocks starting within {args.drydock_days}d: {len(status['drydocks_upcoming'])}")
+    for d in status["drydocks_upcoming"]:
+        print(f"  {d['vessel_name']} — {d.get('yard') or '-'} starting {d['planned_start']}")
 
 
 def _add_user_flag(parser):
@@ -570,6 +600,11 @@ def register(sub) -> None:
     p_report.add_argument("incident_type", choices=["near_miss", "incident", "audit", "inspection"])
     p_report.add_argument("description")
     p_report.add_argument("--severity", default=None, choices=["low", "medium", "high", "critical"])
+    p_report.add_argument(
+        "--find-similar",
+        action="store_true",
+        help="after reporting, retrieve similar past incidents from the ingested corpus",
+    )
     _add_user_flag(p_report)
     p_report.set_defaults(func=cmd_safety_report)
     p_list = safety_sub.add_parser("list", help="list a vessel's safety reports, newest first")
@@ -586,3 +621,16 @@ def register(sub) -> None:
         help="list open critical incidents that trigger SOLAS I/21's flag-State casualty report",
     )
     p_reportable.set_defaults(func=cmd_safety_reportable)
+
+    p = sub.add_parser(
+        "fleet", help="read-only cross-vessel rollup — open incidents, cert expiries, drydocks"
+    )
+    fleet_sub = p.add_subparsers(dest="fleet_command", required=True)
+    p_status = fleet_sub.add_parser("status", help="fleet-wide safety/compliance/drydock snapshot")
+    p_status.add_argument(
+        "--cert-days", type=int, default=30, help="STCW cert look-ahead window in days"
+    )
+    p_status.add_argument(
+        "--drydock-days", type=int, default=90, help="drydock look-ahead window in days"
+    )
+    p_status.set_defaults(func=cmd_fleet_status)

@@ -99,6 +99,7 @@
       <label>top_k <input type="number" id="top_k" value="5" min="1" max="20"></label>
       <label><input type="checkbox" id="generate" checked> generate answer</label>
       <label><input type="checkbox" id="rerank" checked> rerank</label>
+      <label><input type="checkbox" id="checklist"> checklist</label>
       <label>since <input type="date" id="since"></label>
       <label>source
         <select id="source_filter">
@@ -198,6 +199,7 @@
       top_k: parseInt(document.getElementById("top_k").value, 10) || 5,
       generate: document.getElementById("generate").checked,
       rerank: document.getElementById("rerank").checked,
+      checklist: document.getElementById("checklist").checked,
     };
     var since = document.getElementById("since").value;
     if (since) body.since = since;

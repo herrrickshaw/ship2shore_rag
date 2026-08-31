@@ -44,8 +44,16 @@ def test_index_serves_html(client):
 def test_ask_returns_passages_from_pipeline(client, monkeypatch):
     captured = {}
 
-    def fake_ask(question, top_k=5, generate=True, rerank=True, since=None, source_filter=None):
-        captured["args"] = (question, top_k, generate, rerank, since, source_filter)
+    def fake_ask(
+        question,
+        top_k=5,
+        generate=True,
+        rerank=True,
+        since=None,
+        source_filter=None,
+        checklist=False,
+    ):
+        captured["args"] = (question, top_k, generate, rerank, since, source_filter, checklist)
         return {"answer": "Bulk carriers are large cargo vessels. [1]", "passages": FAKE_PASSAGES}
 
     monkeypatch.setattr(server, "ask", fake_ask)
@@ -59,20 +67,29 @@ def test_ask_returns_passages_from_pipeline(client, monkeypatch):
     assert body["passages"][0]["score"] == pytest.approx(0.9123)
     assert body["passages"][1]["url"] is None
 
-    question, top_k, generate, rerank, since, source_filter = captured["args"]
+    question, top_k, generate, rerank, since, source_filter, checklist = captured["args"]
     assert question == "What is a bulk carrier?"
     assert top_k == 5
     assert generate is True
     assert rerank is True
     assert since is None
     assert source_filter is None
+    assert checklist is False
 
 
 def test_ask_passes_through_optional_filters(client, monkeypatch):
     captured = {}
 
-    def fake_ask(question, top_k=5, generate=True, rerank=True, since=None, source_filter=None):
-        captured["args"] = (question, top_k, generate, rerank, since, source_filter)
+    def fake_ask(
+        question,
+        top_k=5,
+        generate=True,
+        rerank=True,
+        since=None,
+        source_filter=None,
+        checklist=False,
+    ):
+        captured["args"] = (question, top_k, generate, rerank, since, source_filter, checklist)
         return {"answer": None, "passages": []}
 
     monkeypatch.setattr(server, "ask", fake_ask)
@@ -86,18 +103,20 @@ def test_ask_passes_through_optional_filters(client, monkeypatch):
             "rerank": False,
             "since": "2020-01-01",
             "source_filter": "maib",
+            "checklist": True,
         },
     )
     assert resp.status_code == 200
     assert resp.json() == {"answer": None, "passages": []}
 
-    question, top_k, generate, rerank, since, source_filter = captured["args"]
+    question, top_k, generate, rerank, since, source_filter, checklist = captured["args"]
     assert question == "engine room fires"
     assert top_k == 3
     assert generate is False
     assert rerank is False
     assert since == date(2020, 1, 1)
     assert source_filter == "maib"
+    assert checklist is True
 
 
 def test_ask_with_no_passages_returns_empty_list(client, monkeypatch):

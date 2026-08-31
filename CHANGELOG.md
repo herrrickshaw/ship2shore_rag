@@ -1,5 +1,54 @@
 # Changelog
 
+## [Unreleased] — 2026-08-30 — Six roadmap features from the feature-pitch review
+
+### Added
+- **`cli.py hazard-brief`** (`rag/hazard_brief.py`) — retrieval-only job-hazard
+  briefs: given a job description, retrieves similar past incidents/guidance
+  and returns every distinct regulation instrument (`ingest/regulation_refs.py`)
+  mentioned across the retrieved passages, deduplicated. Not a generative risk
+  score or a predictive model — composes existing retrieval + extraction only.
+- **`cli.py fleet status`** / `GET /fleet/status` (`ops/store.py`:
+  `list_all_open_incidents`, `list_upcoming_drydocks`, `fleet_status`) — a
+  read-only cross-vessel rollup (open incidents by severity, STCW certs
+  expiring soon, upcoming dry-dockings), closing the gap README's "Honest
+  scope" section names directly ("Not multi-vessel fleet software. Nothing
+  here aggregates across vessels.") for the read side only — no write path,
+  no vessel-to-vessel sync.
+- **`cli.py safety report --find-similar`** / `POST .../safety?find_similar=true`
+  (`rag/similar_incidents.py`) — after filing a near-miss/incident, optionally
+  retrieves similar past reports from the ingested corpus. Pattern recall at
+  report time, not a predictive model; kept as a standalone opt-in module
+  rather than wired into `ops/store.py`'s write path, so ops (dependency-light
+  CRUD) and rag (retrieval, embeddings) stay the separate concerns README
+  already treats them as.
+- **`cli.py training-gaps`** (`rag/training_gaps.py`) — crew whose STCW
+  certificate is expiring soon (`ops/store.py:list_expiring_certs`, existing),
+  each annotated with the STCW convention passages already ingested and cited
+  via `regulation_refs`. One retrieval call per batch, not per crew member.
+- **`cli.py ask --checklist`** (`rag/pipeline.py`) — restructures a generated
+  answer as an ordered, cited checklist instead of prose. New
+  `CHECKLIST_SYSTEM_PROMPT` / `_system_prompt()`; passed through in
+  `webui/server.py`'s `AskRequest` and the web UI's form.
+- **`cli.py ask --port "<name>"`** — composes a navigational-hazard/
+  chokepoint-security/regulatory question for a named port or strait and
+  runs it through the existing `ask()` pipeline; `question` is now optional
+  on `ask` (required only when `--port` is absent). Pure composition over
+  already-ingested sources — no new retrieval path.
+
+Source: a feature-pitch review cross-referencing Synergy Group's 2020
+"Tech Transformation Projects — Approved List" against this project's
+actual architecture, filtered to what extends existing retrieval/
+extraction/ops rather than requiring a different kind of system. Payroll
+automation, sensor-based fatigue/health monitoring, and a messaging-bot
+layer were reviewed and deliberately excluded — see the pitch doc for why.
+
+Tests: `tests/test_hazard_brief.py`, `tests/test_similar_incidents.py`,
+`tests/test_training_gaps.py`, `tests/test_fleet_status.py`,
+`tests/test_pipeline.py`, `tests/test_cli.py`, plus updates to
+`tests/test_webui.py` for the new `checklist` field. All added to
+`.github/workflows/quality-gates.yml`'s test run.
+
 ## [Unreleased] — 2026-08-27 — Ship-management industry associations and developments via type: html
 
 ### Added

@@ -56,8 +56,11 @@ retrieval/retriever.py  -> RRF fusion (dense cosine + sparse keyword)
 retrieval/rerank.py     -> cross-encoder rescoring of the candidate pool
 retrieval/diversify.py  -> final top-k cut: per-source cap + dedup
         |
-rag/pipeline.py    -> cited prompt, optional Claude generation
-rag/cite_check.py  -> flags out-of-range / weakly-grounded citations
+rag/pipeline.py           -> cited prompt, optional Claude generation (prose or --checklist)
+rag/cite_check.py         -> flags out-of-range / weakly-grounded citations
+rag/hazard_brief.py       -> job description -> similar passages + deduped regulation_refs
+rag/similar_incidents.py  -> incident description -> similar past reports (opt-in, ops calls it)
+rag/training_gaps.py      -> ops.store.list_expiring_certs() joined against STCW passages
         |
 cli.py (CLI) | webui/ (browser, read-only) | ingest_service/ (write, scheduled+on-demand) | api.py (ops REST)
 ```

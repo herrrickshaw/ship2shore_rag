@@ -43,6 +43,7 @@ class AskRequest(BaseModel):
     rerank: bool = True
     since: date | None = None
     source_filter: str | None = None
+    checklist: bool = False
 
 
 class Passage(BaseModel):
@@ -73,6 +74,7 @@ def post_ask(body: AskRequest) -> dict:
         rerank=body.rerank,
         since=body.since,
         source_filter=body.source_filter,
+        checklist=body.checklist,
     )
 
 

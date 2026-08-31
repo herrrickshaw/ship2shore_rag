@@ -11,7 +11,10 @@ internet, where anyone could claim to be "Captain Ahab". API_KEY (below) is
 the actual access gate for deployment — see README "Operations module API".
 
 Deliberately does NOT wrap rag/pipeline.py (`ask`) — this is the ops-data
-surface only, matching what was asked for.
+surface only, matching what was asked for. The one exception is
+`find_similar` on POST /vessels/{id}/safety, a lazy opt-in import of
+rag/similar_incidents.py (not `ask`/pipeline.py) — see that module's
+docstring for why it's opt-in rather than always-on.
 
 Every endpoint is plain `def`, not `async def` — deliberately. ops/store.py
 is entirely sync (psycopg/sqlite3, no awaitable calls), and a plain `def`
@@ -418,7 +421,10 @@ class SafetyIncidentIn(BaseModel):
 
 @app.post("/vessels/{name_or_imo}/safety")
 def report_safety_incident(
-    name_or_imo: str, body: SafetyIncidentIn, user: dict | None = Depends(current_user)
+    name_or_imo: str,
+    body: SafetyIncidentIn,
+    find_similar: bool = False,
+    user: dict | None = Depends(current_user),
 ):
     # Deliberately unrestricted — see ops/auth.py's comment on "safety:report".
     vessel = resolve_vessel(name_or_imo)
@@ -426,7 +432,12 @@ def report_safety_incident(
     sid = store.add_safety_incident(
         vessel["id"], body.incident_type, body.description, reported_by=_actor_id(user), **fields
     )
-    return {"id": sid}
+    result = {"id": sid}
+    if find_similar:
+        from rag.similar_incidents import find_similar_incidents
+
+        result["similar"] = find_similar_incidents(body.description)
+    return result
 
 
 @app.get("/vessels/{name_or_imo}/safety")
@@ -455,3 +466,11 @@ def close_safety_incident(
         incident_id, _actor_id(user), corrective_action=body.corrective_action
     )
     return {"ok": True}
+
+
+# ---- fleet (cross-vessel, read-only rollup) ---------------------------------
+
+
+@app.get("/fleet/status")
+def fleet_status(cert_days: int = 30, drydock_days: int = 90):
+    return store.fleet_status(cert_days_ahead=cert_days, drydock_days_ahead=drydock_days)

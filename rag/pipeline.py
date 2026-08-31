@@ -13,6 +13,18 @@ SYSTEM_PROMPT = (
     "don't contain the answer, say so explicitly instead of guessing."
 )
 
+CHECKLIST_SYSTEM_PROMPT = (
+    "You are a maritime shipping domain assistant. Using ONLY the numbered sources "
+    "provided below, produce an ordered, numbered checklist of concrete steps that "
+    "answers the question -- the shape a watchkeeper needs, not a prose paragraph. "
+    "Cite the source for each step inline as [1], [2], etc. If the sources don't "
+    "contain enough to build a checklist, say so explicitly instead of guessing."
+)
+
+
+def _system_prompt(checklist: bool) -> str:
+    return CHECKLIST_SYSTEM_PROMPT if checklist else SYSTEM_PROMPT
+
 
 def _build_context(passages: list[dict], max_chars: int = MAX_CONTEXT_CHARS) -> str:
     """Assembles numbered source blocks, stopping before max_chars rather
@@ -40,6 +52,7 @@ def ask(
     rerank: bool = True,
     since: date | None = None,
     source_filter: str | None = None,
+    checklist: bool = False,
 ) -> dict:
     passages = retrieve(
         question, top_k=top_k, rerank=rerank, since=since, source_filter=source_filter
@@ -60,7 +73,7 @@ def ask(
     response = client.messages.create(
         model="claude-sonnet-5",
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
+        system=_system_prompt(checklist),
         messages=[{"role": "user", "content": f"Sources:\n{context}\n\nQuestion: {question}"}],
     )
     answer = "".join(block.text for block in response.content if block.type == "text")

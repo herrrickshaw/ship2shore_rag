@@ -653,3 +653,80 @@ def close_safety_incident(
             "UPDATE safety_incidents SET status = 'closed', closed_by = ?, corrective_action = COALESCE(?, corrective_action) WHERE id = ?",
             (closed_by, corrective_action, incident_id),
         )
+
+
+def list_all_open_incidents() -> list[dict]:
+    """Every open safety incident fleet-wide, any severity -- the input to
+    fleet_status()'s per-severity rollup. list_reportable_incidents() above
+    only surfaces the critical/open subset that carries a flag-State
+    reporting duty; this is the broader read a fleet manager needs to see
+    the whole open-incident picture, not just the ones with legal exposure
+    attached."""
+    with _Conn() as c:
+        cur = c.execute(
+            """
+            SELECT safety_incidents.*, vessels.name AS vessel_name
+            FROM safety_incidents JOIN vessels ON vessels.id = safety_incidents.vessel_id
+            WHERE safety_incidents.status = 'open'
+            ORDER BY safety_incidents.incident_date
+            """,
+            """
+            SELECT safety_incidents.*, vessels.name AS vessel_name
+            FROM safety_incidents JOIN vessels ON vessels.id = safety_incidents.vessel_id
+            WHERE safety_incidents.status = 'open'
+            ORDER BY safety_incidents.incident_date
+            """,
+        )
+        return _rows(cur, c.backend)
+
+
+# ---- fleet (cross-vessel, read-only rollup) ---------------------------------
+
+
+def list_upcoming_drydocks(days_ahead: int = 90) -> list[dict]:
+    """Fleet-wide planned dry-dockings starting within days_ahead -- same
+    look-ahead-window shape as list_expiring_certs() above, joined with
+    vessel name for the same reason: directly actionable without a second
+    lookup per vessel."""
+    with _Conn() as c:
+        cur = c.execute(
+            """
+            SELECT drydock_events.*, vessels.name AS vessel_name
+            FROM drydock_events JOIN vessels ON vessels.id = drydock_events.vessel_id
+            WHERE drydock_events.status = 'planned'
+              AND drydock_events.planned_start IS NOT NULL
+              AND drydock_events.planned_start <= CURRENT_DATE + (%s * INTERVAL '1 day')
+            ORDER BY drydock_events.planned_start
+            """,
+            """
+            SELECT drydock_events.*, vessels.name AS vessel_name
+            FROM drydock_events JOIN vessels ON vessels.id = drydock_events.vessel_id
+            WHERE drydock_events.status = 'planned'
+              AND drydock_events.planned_start IS NOT NULL
+              AND drydock_events.planned_start <= date('now', '+' || ? || ' days')
+            ORDER BY drydock_events.planned_start
+            """,
+            (days_ahead,),
+        )
+        return _rows(cur, c.backend)
+
+
+def fleet_status(cert_days_ahead: int = 30, drydock_days_ahead: int = 90) -> dict:
+    """Read-only cross-vessel rollup -- closes the gap README names directly
+    under "Honest scope": 'Not multi-vessel fleet software. Nothing here
+    aggregates across vessels.' This closes it for the read side only (no
+    write path, no vessel-to-vessel sync -- that gap is real and stays
+    open) by composing the fleet-wide queries already in this module
+    rather than adding new storage."""
+    incidents = list_all_open_incidents()
+    by_severity: dict[str, int] = {}
+    for i in incidents:
+        sev = i.get("severity") or "unspecified"
+        by_severity[sev] = by_severity.get(sev, 0) + 1
+    return {
+        "vessel_count": len(list_vessels()),
+        "open_incidents": incidents,
+        "open_incidents_by_severity": by_severity,
+        "certs_expiring": list_expiring_certs(days_ahead=cert_days_ahead),
+        "drydocks_upcoming": list_upcoming_drydocks(days_ahead=drydock_days_ahead),
+    }

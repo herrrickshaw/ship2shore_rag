@@ -86,6 +86,16 @@ python3 cli.py ask "bill of lading vs sea waybill" --no-generate
 # straight into an email (no external assets, a few KB)
 python3 cli.py ask "what caused the Dali allision?" --export briefing.html
 python3 cli.py ask "what caused the Dali allision?" --export briefing.txt   # plain-text body instead
+
+# Structure the generated answer as an ordered, cited checklist instead of prose
+python3 cli.py ask "steps for enclosed space entry" --checklist
+
+# Shortcut: build a navigational/chokepoint/regulatory question for a port or strait
+python3 cli.py ask --port "Strait of Hormuz" --export briefing.html
+
+# Job-hazard brief — similar past incidents + every regulation instrument
+# mentioned across them, deduplicated (retrieval only, not a risk score)
+python3 cli.py hazard-brief "enclosed space entry on a chemical tanker"
 ```
 
 ## How it works
@@ -250,6 +260,16 @@ offline on a vessel, and it must not pretend to be bigger than it is.
 | `drydock_events` | Dry-docking — yard, scope, planned/actual dates, cost | `cli.py drydock add/list` |
 | `safety_incidents` | QHSE — near-miss/incident/audit/inspection reports, open/closed | `cli.py safety report/list/close` |
 
+Three composition commands span both the operations tables above and the
+literature corpus (not new tables, not new ingestion — they join what
+already exists):
+
+| Command | What |
+|---|---|
+| `cli.py training-gaps` | Crew with an STCW cert expiring soon, each cited against the STCW convention text already ingested |
+| `cli.py fleet status` / `GET /fleet/status` | Read-only cross-vessel rollup — open incidents by severity, certs expiring, upcoming dry-dockings |
+| `cli.py safety report --find-similar` | After filing a report, retrieves similar past incidents from the ingested corpus |
+
 ### IAM — scoped to what a CLI tool actually needs
 
 This is **not** web authentication — no passwords, no sessions, no login
@@ -293,7 +313,14 @@ python3 cli.py drydock add "MV Example" --yard "Keppel Shipyard" --start 2027-03
 
 # QHSE — anyone can report, no --user role restriction; only master/shore_staff can close
 python3 cli.py safety report "MV Example" near_miss "Loose grating, tripping hazard" --severity medium --user "Deck Hand"
+python3 cli.py safety report "MV Example" incident "Steering gear failure" --severity critical --find-similar
 python3 cli.py safety close 1 --corrective-action "Grating re-secured and inspected" --user "Captain Ahab"
+
+# Crew whose STCW cert is expiring soon, cited against the ingested STCW convention text
+python3 cli.py training-gaps --days 30
+
+# Read-only cross-vessel rollup — open incidents, cert expiries, drydocks
+python3 cli.py fleet status
 ```
 
 ### Offline-first, same as the literature corpus
@@ -336,7 +363,9 @@ Endpoints mirror the CLI's resource shape — `POST/GET /vessels`,
 `POST/GET /vessels/{name_or_imo}/log`, `POST/GET /equipment/{id}/parts`,
 `POST /procurement/{id}/approve`, `POST /safety/{id}/close`, etc. — see
 `/docs` for the full interactive list, or `api.py` directly (it's one file,
-organized in the same order as `ops_cli.py`).
+organized in the same order as `ops_cli.py`). `GET /fleet/status` is the one
+cross-vessel exception (see "Entities" above); `POST .../safety` accepts an
+optional `?find_similar=true` to retrieve similar past incidents inline.
 
 **Container image**: `Dockerfile` + `requirements-api.txt` build a slim image
 (just `api.py` + `ops/` — none of the RAG-ingestion side's heavy deps like
@@ -396,9 +425,12 @@ for development and for driving a frontend that also runs locally.
 
 ### Honest scope
 
-- **Not multi-vessel fleet software.** Nothing here aggregates across
-  vessels or syncs vessel → shore. A real fleet operator needs that; it's a
-  substantial feature this project doesn't have.
+- **Not multi-vessel fleet software.** `cli.py fleet status` / `GET
+  /fleet/status` aggregate a read-only snapshot across vessels (open
+  incidents, cert expiries, drydocks) — but nothing here syncs vessel →
+  shore, and there's no write path or per-fleet permission model. A real
+  fleet operator needs that; it's still a substantial feature this project
+  doesn't have.
 - **Not a replacement for statutory logs.** A ship's official logbook has
   legal requirements (format, retention, inspection) this tool doesn't
   attempt to satisfy — treat `log_entries` as a searchable digital

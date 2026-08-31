@@ -69,15 +69,27 @@ def cmd_export_sqlite(args) -> None:
     print(f"exported {docs} documents / {chunks} chunks to {output}")
 
 
+def _port_question(port: str) -> str:
+    return (
+        f"What are the navigational hazards, chokepoint security concerns, and regulatory "
+        f"requirements a vessel should be aware of at or near {port}?"
+    )
+
+
 def cmd_ask(args) -> None:
+    question = args.question or (_port_question(args.port) if args.port else None)
+    if question is None:
+        raise SystemExit("cli.py ask: provide a question, or --port <name> to build one")
+
     since = date.fromisoformat(args.since) if args.since else None
     result = ask(
-        args.question,
+        question,
         top_k=args.top_k,
         generate=not args.no_generate,
         rerank=not args.no_rerank,
         since=since,
         source_filter=args.source_filter,
+        checklist=args.checklist,
     )
     if result["answer"]:
         print(result["answer"])
@@ -91,10 +103,51 @@ def cmd_ask(args) -> None:
     if args.export:
         from rag.export import export
 
-        size = export(result, args.question, args.export, args.format)
+        size = export(result, question, args.export, args.format)
         print(
             f"\nwrote {args.export} ({size:,} bytes) — small enough to attach or paste into an email"
         )
+
+
+def cmd_hazard_brief(args) -> None:
+    from rag.hazard_brief import hazard_brief
+
+    brief = hazard_brief(args.job_description, top_k=args.top_k, source_filter=args.source_filter)
+    print(f"Hazard brief: {brief['job_description']}\n")
+
+    if brief["regulation_refs"]:
+        print("Governing regulations (from retrieved passages):")
+        for r in brief["regulation_refs"]:
+            detail = f" {r['detail']}" if r.get("detail") else ""
+            print(f"  - {r['instrument']}{detail}")
+        print()
+
+    print("Similar past incidents / relevant guidance:")
+    for i, p in enumerate(brief["passages"], 1):
+        print(f"[{i}] {p['title']} ({p['url']}) — score {p['score']:.4f}")
+
+    if args.export:
+        from rag.export import export
+
+        result = {"answer": None, "passages": brief["passages"]}
+        size = export(result, brief["job_description"], args.export, args.format)
+        print(f"\nwrote {args.export} ({size:,} bytes)")
+
+
+def cmd_training_gaps(args) -> None:
+    from rag.training_gaps import training_gaps
+
+    gaps = training_gaps(days_ahead=args.days)
+    if not gaps:
+        print(f"no STCW certificates expiring within {args.days} days")
+        return
+    for g in gaps:
+        print(
+            f"#{g['id']}  {g['name']:<20} {g['rank']:<20} {g['vessel_name']:<20} "
+            f"expires {g['stcw_cert_expiry']}"
+        )
+        for c in g["stcw_citations"]:
+            print(f"    cites: {c['title']} ({c['url']})")
 
 
 def main() -> None:
@@ -128,7 +181,20 @@ def main() -> None:
         "ask",
         help="ask a question — hybrid retrieval over the corpus, optionally generated into a cited answer",
     )
-    p_ask.add_argument("question")
+    p_ask.add_argument("question", nargs="?", default=None, help="omit when using --port")
+    p_ask.add_argument(
+        "--port",
+        default=None,
+        help="shortcut: build a navigational/regulatory briefing question for this port or "
+        'strait, e.g. "Strait of Hormuz" (composes on top of already-ingested sources — no new '
+        "retrieval)",
+    )
+    p_ask.add_argument(
+        "--checklist",
+        action="store_true",
+        help="structure the generated answer as an ordered, cited checklist instead of prose "
+        "(no effect without generation)",
+    )
     p_ask.add_argument("--top-k", type=int, default=5)
     p_ask.add_argument("--no-generate", action="store_true")
     p_ask.add_argument(
@@ -158,6 +224,31 @@ def main() -> None:
         help="defaults to --export's extension",
     )
     p_ask.set_defaults(func=cmd_ask)
+
+    p_hazard = sub.add_parser(
+        "hazard-brief",
+        help="retrieve similar past incidents + governing regulations for a job description "
+        "(retrieval only, not a predictive risk score)",
+    )
+    p_hazard.add_argument("job_description")
+    p_hazard.add_argument("--top-k", type=int, default=5)
+    p_hazard.add_argument(
+        "--source-filter", default=None, choices=sorted(REGISTRY), help="restrict to one source"
+    )
+    p_hazard.add_argument(
+        "--export", default=None, help="write a compact report to this path (.html, .txt, or .md)"
+    )
+    p_hazard.add_argument("--format", default=None, choices=["html", "txt", "md"])
+    p_hazard.set_defaults(func=cmd_hazard_brief)
+
+    p_training = sub.add_parser(
+        "training-gaps",
+        help="crew with an STCW cert expiring soon, cited against the ingested STCW convention text",
+    )
+    p_training.add_argument(
+        "--days", type=int, default=30, help="look-ahead window in days (default: 30)"
+    )
+    p_training.set_defaults(func=cmd_training_gaps)
 
     p_export = sub.add_parser(
         "export-sqlite",
