@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased] — 2026-09-01 — Ops API deployed to Fly.io
+
+### Deployed
+- **`https://ship2shore-ops-api.fly.dev`** — the ops REST API, previously
+  documented as buildable-but-unhosted, is now live: a Fly app
+  (`ship2shore-ops-api`, `sin` region, `fly.toml` as already checked in)
+  backed by a small unmanaged Fly Postgres app (`ship2shore-ops-db`),
+  scales to zero when idle. `db/ops_schema.sql` applied directly (this
+  Postgres has no `vector` extension, so the combined `cli.py init-db` —
+  which also runs the RAG side's `db/schema.sql` — doesn't apply here;
+  see README for the full explanation), seeded with the same throwaway
+  demo dataset used for local testing.
+- The already-published [Ship2Shore Ops](https://ship2shore-ops-demo.lovable.app)
+  Lovable frontend now points at this permanent URL instead of a
+  Cloudflare quick tunnel — public, survives a reboot, not tied to any
+  one machine.
+- README's "Not yet done: actually running this somewhere public" section
+  is now a "Deployed" section with the real setup, plus two documented
+  open gaps: the Postgres/`vector`-extension deviation above, and
+  `allow_origins="*"` in `api.py` still not tightened to the frontend's
+  actual origin (fine for a demo answering only seeded data, first thing
+  to fix if this ever serves real fleet data).
+
 ## [Unreleased] — 2026-08-30 — Six roadmap features from the feature-pitch review
 
 ### Added

@@ -379,49 +379,45 @@ docker pull ghcr.io/herrrickshaw/ship2shore_rag/ops-api:latest
 docker run -p 8010:8010 -e API_KEY="$API_KEY" -e DATABASE_URL="$DATABASE_URL" ghcr.io/herrrickshaw/ship2shore_rag/ops-api:latest
 ```
 
-**Not yet done: actually running this somewhere public.** The image is
-publishable and pullable; nothing hosts and runs it continuously with a
-public URL and a publicly reachable Postgres yet. `fly.toml` is written and
-ready (Fly.io, `sin` region, scales to zero when idle to keep cost down), but
-actually deploying needs steps only the account owner can do — I can't
-create a Fly.io account, add a payment method, or complete the browser-based
-`fly auth login`. **Fly.io has no free tier as of 2026** — a card is
-required to sign up, and even the cheapest path costs something monthly, so
-this is a real decision for whoever's paying, not something to default into.
+**Deployed.** Live at `https://ship2shore-ops-api.fly.dev` (Fly.io, `sin`
+region, `fly.toml` at repo root), backed by a small unmanaged Fly Postgres
+app (`ship2shore-ops-db`, `shared-cpu-1x`, 3GB volume — a few $/month,
+chosen over Fly's Managed Postgres at $38+/month as the right scale for this
+project, not a production fleet system). `min_machines_running = 0` /
+`auto_stop_machines = "stop"` in `fly.toml` means it scales to zero when
+idle and wakes on the next request, so leaving it running costs very little.
+A public read-only demo frontend for it is live at
+[ship2shore-ops-demo.lovable.app](https://ship2shore-ops-demo.lovable.app),
+seeded with throwaway demo data (2 vessels, one crew member with an
+expiring STCW cert, one critical safety incident, one upcoming drydock).
 
-To deploy once you're ready:
+Redeploying after a code change:
 
 ```bash
-brew install flyctl        # already done in this environment
-fly auth login              # opens your browser — this step is yours to do
-fly launch --no-deploy       # picks up fly.toml, creates the app, skips first deploy
-
-# Cheapest Postgres path: an unmanaged Fly Postgres app (a few $/month for a
-# small single-node instance) rather than Fly's Managed Postgres ($38+/month) —
-# reasonable for this project's scale, not for a production fleet system.
-fly postgres create --name ship2shore-ops-db --initial-cluster-size 1 --vm-size shared-cpu-1x --volume-size 3
-fly postgres attach ship2shore-ops-db -a ship2shore-ops-api   # wires DATABASE_URL automatically
-
-fly secrets set API_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')" -a ship2shore-ops-api
 fly deploy -a ship2shore-ops-api
-
-# then run `python3 cli.py init-db` once (or the equivalent SQL) against the
-# new Postgres to create the ops tables — the app doesn't self-migrate
 ```
 
-After that, tighten `allow_origins` in `api.py` from `"*"` to the actual
-frontend origin, and update the Lovable project's `API_BASE` (in
-`src/lib/api.ts`, or via the `s2s.apiBase` localStorage override already
-built into it) to the new `https://ship2shore-ops-api.fly.dev` URL.
+`DATABASE_URL` and `API_KEY` are already set as Fly secrets (`fly secrets
+list -a ship2shore-ops-api` to see the names, not the values) — `fly deploy`
+picks them up automatically, nothing to re-supply.
 
-**Deployment caveat, stated plainly:** this only listens on `127.0.0.1` by
-default and isn't deployed anywhere public. A frontend hosted elsewhere (e.g.
-on Lovable) cannot reach `localhost` on your machine — for that to work, this
-API needs to run somewhere with a public URL (a small VM, Fly.io, Render,
-etc.), with `DATABASE_URL` pointed at a reachable Postgres and CORS
-(`allow_origins` in `api.py`) tightened to the actual frontend origin instead
-of `*`. That deployment step isn't done yet — running it locally is enough
-for development and for driving a frontend that also runs locally.
+**Known deviation from `db/init_db.py`:** this Fly Postgres instance does
+not have the `vector` extension available, so `cli.py init-db` fails outright
+against it (`CREATE EXTENSION vector` errors before it gets to the ops
+tables) — expected, since `vector` only matters for the RAG/literature side
+(`db/schema.sql`), which this ops-only deployment doesn't run. The schema
+was applied directly instead: `db/ops_schema.sql` executed on its own
+against the instance (via `fly proxy 5433:5432 -a ship2shore-ops-db` to
+reach it from outside Fly's network), skipping `schema.sql` entirely. If
+this project's Postgres and the literature corpus's Postgres are ever meant
+to be the same instance, that instance needs the `vector` extension
+installed first — they are two separate concerns today (see "Operations
+module" above), and this deployment only stood up the ops side.
+
+**Known gap, not yet closed:** `allow_origins` in `api.py` is still `"*"`,
+not tightened to the Lovable app's actual origin — fine for a public demo
+answering only seeded, throwaway data, but the thing to fix first if this
+ever serves real fleet data.
 
 ### Honest scope
 
