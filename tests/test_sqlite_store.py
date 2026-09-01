@@ -130,3 +130,42 @@ def test_regulation_refs_defaults_to_empty_list_when_not_provided(db_path):
         "unrelated content", _fake_embedding(1.0), top_k=1, path=db_path
     )
     assert results[0]["regulation_refs"] == []
+
+
+def test_retrieve_self_heals_a_snapshot_missing_regulation_refs(db_path):
+    # Regression: retrieve() used to call connect() without create_schema(),
+    # so a pre-regulation_refs snapshot -- the exact shape of the two files
+    # already committed to this repo, exported before that migration
+    # existed -- crashed with "no such column: c.regulation_refs" instead
+    # of self-healing via create_schema()'s documented ALTER TABLE fallback.
+    old_schema = sqlite_store.SCHEMA.replace(
+        ",\n    regulation_refs TEXT NOT NULL DEFAULT '[]'", ""
+    )
+    assert "regulation_refs" not in old_schema  # sanity: the strip actually worked
+
+    conn = sqlite_store.connect(db_path)
+    conn.executescript(old_schema)
+    doc_cur = conn.execute(
+        "INSERT INTO documents (source, url, title, license) VALUES (?, ?, ?, ?)",
+        ("test", "https://example.com/old", "Old snapshot doc", None),
+    )
+    doc_id = doc_cur.lastrowid
+    content = "a pre-migration chunk with no regulation_refs column"
+    chunk_cur = conn.execute(
+        "INSERT INTO chunks (document_id, chunk_index, content) VALUES (?, ?, ?)",
+        (doc_id, 0, content),
+    )
+    chunk_id = chunk_cur.lastrowid
+    conn.execute("INSERT INTO chunks_fts (rowid, content) VALUES (?, ?)", (chunk_id, content))
+    conn.execute(
+        "INSERT INTO chunks_vec (rowid, embedding) VALUES (?, ?)",
+        (chunk_id, sqlite_vec.serialize_float32(_fake_embedding(1.0))),
+    )
+    conn.commit()
+    conn.close()
+
+    results = sqlite_store.retrieve(
+        "pre-migration chunk", _fake_embedding(1.0), top_k=1, path=db_path
+    )
+    assert results[0]["title"] == "Old snapshot doc"
+    assert results[0]["regulation_refs"] == []

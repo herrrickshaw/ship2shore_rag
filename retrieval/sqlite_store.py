@@ -137,6 +137,12 @@ def retrieve(
     2606.13249) used for maritime accident-report retrieval."""
     conn = connect(path)
     try:
+        # create_schema()'s ALTER TABLE migrations exist specifically for "an
+        # older snapshot file... reused directly rather than re-exported"
+        # (see its docstring) -- but until this call, nothing on the read
+        # path ever invoked it, so exactly that scenario crashed retrieval
+        # outright instead of self-healing as documented.
+        create_schema(conn)
         dense_rows = conn.execute(
             """
             SELECT rowid, distance FROM chunks_vec
