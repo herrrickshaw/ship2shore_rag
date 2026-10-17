@@ -5,7 +5,7 @@ from ingest.registry import REGISTRY, fetch
 
 
 def test_registry_has_every_known_source():
-    assert set(REGISTRY) == {"arxiv", "wikipedia", "maib", "ntm", "ntsb", "pdf", "file"}
+    assert set(REGISTRY) == {"arxiv", "wikipedia", "maib", "ntm", "ntsb", "taic", "pdf", "file"}
 
 
 def test_unknown_source_raises_value_error():

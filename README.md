@@ -157,6 +157,7 @@ measurable, not just eyeballed — `cli.py eval` runs Recall@k/MRR from
 | `maib` | UK Marine Accident Investigation Branch reports, discovered via `gov.uk/maib-reports.atom` | Open Government Licence v3.0 |
 | `ntm` | UKHO ADMIRALTY weekly Notices to Mariners bulletin (the main booklet, not the per-chart correction PDFs) | UKHO/ADMIRALTY — free to download for navigational use; verify terms before redistribution |
 | `ntsb` | US NTSB marine accident reports, discovered via CAROL's search API | U.S. government work — public domain (17 U.S.C. §105) |
+| `taic` | New Zealand Transport Accident Investigation Commission maritime inquiry reports (final/interim report PDFs listed at `taic.org.nz/inquiries-recommendations?mode=3`) | NZ Crown copyright; TAIC site terms: public information usable by others if used or quoted in context, with acknowledgement, not for legal proceedings |
 | `pdf` | Anything in `ingest/sources.yaml` — seeded with a handful of NTSB reports and arXiv papers found by name rather than through the seed queries | varies; verify per entry |
 | `file` | Your own local files — see `--path` above | whatever license the file itself carries — verify before ingesting |
 
@@ -176,6 +177,8 @@ fetch (load the index page, then download using that token) rather than a
 stable feed — and the download itself has been observed to intermittently
 drop mid-transfer from this network, which is why `fetch_pdf()` now retries
 with backoff (see `ingest/sources.py`).
+
+`taic` (added 2026-10-17) was verified by curl: listing and inquiry pages are not blocked by `robots.txt`, and only inquiries with a report PDF are ingested (in-progress ones are skipped). Preview without touching the database: `python3 cli.py ingest --source taic --max-results 3 --dry-run` (the `--dry-run` flag works for every source; it prints title, size, date, URL and writes nothing). Considered and not added: TSB Canada (HTTP 403 to non-browser clients, including a browser User-Agent), ATSB Australia (connection fails with an HTTP/2 INTERNAL_ERROR from this network), Germany BSU (English reports fetchable but no reuse licence stated and `robots.txt` sets `Crawl-delay: 180`), Denmark DMAIB (no licence stated, report lists load dynamically).
 
 **Formats with no public source to crawl.** DNV's class rules (RU-SHIP) are
 free and public but distributed only as whole-edition ZIP archives, not

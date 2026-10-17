@@ -26,6 +26,12 @@ def cmd_ingest(args) -> None:
     except ValueError as e:
         raise SystemExit(str(e)) from e
 
+    if args.dry_run:
+        for d in docs:
+            print(f"  {d['source']}: {d['title']} | {len(d['text']):,} chars | {d.get('published_at')} | {d['url']}")
+        print(f"dry run: fetched {len(docs)} document(s) from {args.source}; nothing written")
+        return
+
     count = ingest_documents(docs)
     print(f"ingested {count} new document(s) from {len(docs)} fetched ({args.source})")
 
@@ -171,6 +177,9 @@ def main() -> None:
         "--query", default=None, help="arxiv search query (omit to run the built-in seed queries)"
     )
     p_ingest.add_argument("--max-results", type=int, default=20)
+    p_ingest.add_argument(
+        "--dry-run", action="store_true", help="fetch and parse only; do not touch the database"
+    )
     p_ingest.add_argument("--config", default="ingest/sources.yaml")
     p_ingest.add_argument(
         "--path", default=None, help='glob for --source file, e.g. "./docs/**/*.pdf"'

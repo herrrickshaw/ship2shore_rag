@@ -28,7 +28,7 @@ def test_sources_lists_every_registry_entry(client):
     resp = client.get("/sources")
     assert resp.status_code == 200
     names = {s["name"] for s in resp.json()}
-    assert names == {"arxiv", "wikipedia", "maib", "ntm", "ntsb", "pdf", "file"}
+    assert names == {"arxiv", "wikipedia", "maib", "ntm", "ntsb", "taic", "pdf", "file"}
 
 
 def test_file_source_is_not_scheduled(client):

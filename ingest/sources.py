@@ -23,6 +23,18 @@ WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 MAIB_FEED = "https://www.gov.uk/maib-reports.atom"
 UKHO_NTM_WEEKLY = "https://msi.admiralty.co.uk/NoticesToMariners/Weekly"
 UKHO_NTM_DOWNLOAD = "https://msi.admiralty.co.uk/NoticesToMariners/DownloadFile"
+TAIC_BASE = "https://www.taic.org.nz"
+TAIC_LIST_PATH = "/inquiries-recommendations"
+TAIC_INQUIRY_RE = re.compile(r'href="(/inquiry/mo-[\w-]+)"')
+TAIC_REPORT_RE = re.compile(r'href="(/sites/default/files/reports/[^"]+\.pdf)"')
+TAIC_PUBLISHED_RE = re.compile(
+    r'Published date</dt>\s*<dd[^>]*>\s*([^<]+?)\s*</dd>'
+)
+TAIC_TITLE_RE = re.compile(r"<title>(.*?)\s*\|\s*TAIC</title>", re.S)
+TAIC_LICENSE = (
+    "NZ Crown copyright; TAIC site terms: public information that may be used by other "
+    "parties if used or quoted in context, with acknowledgement; not for legal proceedings"
+)
 NTSB_CAROL_BASE = "https://data.ntsb.gov/carol-main-public"
 NTSB_REPORT_BASE = "https://www.ntsb.gov/investigations/AccidentReports/Reports"
 NTSB_REPORT_NUMBER_RE = re.compile(r"^[A-Z]{2,5}\d{2,6}$")
@@ -324,6 +336,76 @@ def fetch_ntsb(max_results: int = 30) -> list[dict]:
             doc["published_at"] = published_at
             out.append(doc)
         time.sleep(0.5)  # be polite to ntsb.gov
+    return out
+
+
+def parse_taic_inquiry(html: str) -> dict | None:
+    """Pulls (title, report PDF path, published date) from one TAIC inquiry page.
+    Returns None for inquiries with no final-report PDF yet (still in progress)."""
+    report = TAIC_REPORT_RE.search(html)
+    if not report:
+        return None
+    title = TAIC_TITLE_RE.search(html)
+    published = TAIC_PUBLISHED_RE.search(html)
+    iso = None
+    if published:
+        try:
+            iso = datetime.strptime(published.group(1).strip(), "%d %B %Y").date().isoformat()
+        except ValueError:
+            iso = None  # e.g. "Not yet published" -- retriever parses published_at strictly
+    return {
+        "pdf_path": report.group(1),
+        "title": re.sub(r"\s+", " ", title.group(1)).strip() if title else None,
+        "published_at": iso,
+    }
+
+
+def fetch_taic(max_results: int = 10, max_pages: int = 12) -> list[dict]:
+    """New Zealand Transport Accident Investigation Commission — maritime (mode=3)
+    inquiry reports. Listing pages (`/inquiries-recommendations?mode=3&page=N`) give
+    inquiry links; each inquiry page links its final-report PDF under
+    /sites/default/files/reports/. robots.txt allows these paths. Reuse terms
+    (taic.org.nz/terms-and-conditions, "Use of information from this website"):
+    public information usable by other parties if used or quoted in context, with
+    acknowledgement of diagrams/photos, not for legal proceedings. Inquiries still
+    in progress have no PDF and are skipped."""
+    seen: set[str] = set()
+    out = []
+    for page in range(max_pages):
+        if len(out) >= max_results:
+            break
+        resp = requests.get(
+            f"{TAIC_BASE}{TAIC_LIST_PATH}",
+            params={"mode": 3, "page": page},
+            headers=HEADERS,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        paths = [p for p in TAIC_INQUIRY_RE.findall(resp.text) if p not in seen]
+        if not paths and page > 0 and not TAIC_INQUIRY_RE.search(resp.text):
+            break
+        for path in paths:
+            if len(out) >= max_results:
+                break
+            seen.add(path)
+            time.sleep(0.5)  # be polite to taic.org.nz
+            detail = requests.get(f"{TAIC_BASE}{path}", headers=HEADERS, timeout=30)
+            if detail.status_code != 200:
+                continue
+            info = parse_taic_inquiry(detail.text)
+            if not info:
+                continue
+            pdf_url = f"{TAIC_BASE}{info['pdf_path']}"
+            try:
+                doc = fetch_pdf(pdf_url, title=f"TAIC {path.rsplit('/', 1)[-1].upper()} — {info['title']}", license=TAIC_LICENSE)
+            except Exception as e:
+                print(f"  skipping {path}: {type(e).__name__}: {e}")
+                continue
+            if doc:
+                doc["source"] = "taic"
+                doc["published_at"] = info["published_at"]
+                out.append(doc)
+        time.sleep(0.5)
     return out
 
 

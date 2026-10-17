@@ -27,6 +27,7 @@ from ingest.sources import (
     fetch_maib,
     fetch_ntm,
     fetch_ntsb,
+    fetch_taic,
     fetch_pdf_sources,
     fetch_wikipedia,
 )
@@ -61,6 +62,10 @@ def _fetch_ntsb(*, max_results: int = 30, **_) -> list[dict]:
     return fetch_ntsb(max_results)
 
 
+def _fetch_taic(*, max_results: int = 10, **_) -> list[dict]:
+    return fetch_taic(max_results)
+
+
 def _fetch_pdf(*, config: str = "ingest/sources.yaml", **_) -> list[dict]:
     return fetch_pdf_sources(config)
 
@@ -79,6 +84,9 @@ REGISTRY: dict[str, SourcePlugin] = {
     "maib": SourcePlugin("maib", _fetch_maib, "UK MAIB casualty reports (Atom feed)", 1440),
     "ntm": SourcePlugin("ntm", _fetch_ntm, "UKHO weekly Notices to Mariners", 10080),
     "ntsb": SourcePlugin("ntsb", _fetch_ntsb, "US NTSB marine reports (CAROL API)", 1440),
+    "taic": SourcePlugin(
+        "taic", _fetch_taic, "NZ TAIC maritime inquiry reports (taic.org.nz)", 10080
+    ),
     "pdf": SourcePlugin("pdf", _fetch_pdf, "hand-curated sources.yaml (PDF + type: html)", 1440),
     "file": SourcePlugin(
         "file", _fetch_file, "local files via --path (not schedulable)", 0, needs_path=True

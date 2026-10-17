@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased] — 2026-10-17 — TAIC source + --dry-run
+
+- New `taic` source (NZ Transport Accident Investigation Commission maritime reports), registry-wired. Decision: TSB Canada (403), ATSB (connection fails), BSU Germany (no licence stated, 180s crawl-delay) and DMAIB (no licence stated) were rejected; see README "Sources".
+- `cli.py ingest --dry-run` fetches and prints without writing to the database.
+
 ## [Unreleased] — 2026-09-01 — Ops API deployed to Fly.io
 
 ### Deployed
