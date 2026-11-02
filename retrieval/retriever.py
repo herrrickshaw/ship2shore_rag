@@ -8,7 +8,10 @@ pattern used for maritime accident-report retrieval in the Multi-Field Hybrid
 RAG paper (arXiv 2606.13249).
 """
 
+from __future__ import annotations
+
 from datetime import date, datetime
+from typing import Any, Callable
 
 import psycopg
 from pgvector import Vector
@@ -17,12 +20,27 @@ from pgvector.psycopg import register_vector
 from config import DATABASE_URL, STORAGE_BACKEND
 from ingest.embed import embed_query
 from retrieval.diversify import select as _diversify_select
+from retrieval.fusion import rrf_fuse, top_ids
 from retrieval.rerank import rerank as _cross_encoder_rerank
 
+# Injection seams: the embedder, reranker and storage backend are plain callables so
+# tests (and alternative deployments) can swap them without importing heavy ML deps.
+QueryEmbedder = Callable[[str], "list[float]"]
+Reranker = Callable[[str, "list[dict]"], "list[dict]"]
+Backend = Callable[[str, int, int, int], "list[dict]"]  # (query, top_k, fetch_k, rrf_k)
 
-def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list[dict]:
-    query_embedding = Vector(embed_query(query))
-    with psycopg.connect(DATABASE_URL) as conn:
+
+def _retrieve_postgres(
+    query: str,
+    top_k: int,
+    fetch_k: int,
+    rrf_k: int,
+    embed: QueryEmbedder | None = None,
+    connect: Callable[..., Any] | None = None,
+) -> list[dict]:
+    """Hybrid dense+sparse retrieval against Postgres; embed/connect default to the real ones."""
+    query_embedding = Vector((embed or embed_query)(query))
+    with (connect or psycopg.connect)(DATABASE_URL) as conn:
         register_vector(conn)
         with conn.cursor() as cur:
             # ivfflat defaults to probes=1, i.e. searching only 1 of the
@@ -38,7 +56,7 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
                 "SELECT id FROM chunks ORDER BY embedding <=> %s LIMIT %s",
                 (query_embedding, fetch_k),
             )
-            dense_rank = {row[0]: i for i, row in enumerate(cur.fetchall())}
+            dense_ids = [row[0] for row in cur.fetchall()]
 
             cur.execute(
                 """
@@ -49,16 +67,12 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
                 """,
                 (query, query, fetch_k),
             )
-            sparse_rank = {row[0]: i for i, row in enumerate(cur.fetchall())}
+            sparse_ids = [row[0] for row in cur.fetchall()]
 
-            fused: dict[int, float] = {}
-            for chunk_id, rank in dense_rank.items():
-                fused[chunk_id] = fused.get(chunk_id, 0.0) + 1.0 / (rrf_k + rank)
-            for chunk_id, rank in sparse_rank.items():
-                fused[chunk_id] = fused.get(chunk_id, 0.0) + 1.0 / (rrf_k + rank)
+            fused = rrf_fuse(dense_ids, sparse_ids, rrf_k)
             if not fused:
                 return []
-            top_ids = sorted(fused, key=fused.get, reverse=True)[:top_k]
+            ranked_ids = top_ids(fused, top_k)
 
             cur.execute(
                 """
@@ -66,7 +80,7 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
                 FROM chunks c JOIN documents d ON d.id = c.document_id
                 WHERE c.id = ANY(%s)
                 """,
-                (top_ids,),
+                (ranked_ids,),
             )
             by_id = {r[0]: r for r in cur.fetchall()}
     return [
@@ -79,12 +93,12 @@ def _retrieve_postgres(query: str, top_k: int, fetch_k: int, rrf_k: int) -> list
             "regulation_refs": by_id[i][6],
             "score": fused[i],
         }
-        for i in top_ids
+        for i in ranked_ids
         if i in by_id
     ]
 
 
-def _passage_date(published_at) -> date | None:
+def _passage_date(published_at: Any) -> date | None:
     if published_at is None:
         return None
     if isinstance(published_at, datetime):
@@ -120,8 +134,13 @@ def retrieve(
     candidate_k: int = 20,
     since: date | None = None,
     source_filter: str | None = None,
+    embed: QueryEmbedder | None = None,
+    reranker: Reranker | None = None,
+    backend: Backend | None = None,
 ) -> list[dict]:
-    """RRF gives a fused pool ranked by *where* each side placed a chunk, not
+    """embed/reranker/backend default to the real implementations (see module seams).
+
+    RRF gives a fused pool ranked by *where* each side placed a chunk, not
     by how relevant it actually is to the query, and says nothing about
     whether two chunks are redundant — so pull a wider candidate_k pool from
     RRF regardless of rerank, let the cross-encoder rescore it (if enabled),
@@ -129,15 +148,19 @@ def retrieve(
     overflow and near-duplicates as it walks down the ranking. since/
     source_filter narrow the pool before any of that (see _apply_filters)."""
     pool_k = max(top_k, candidate_k)
-    if STORAGE_BACKEND == "sqlite":
+    if backend is not None:
+        candidates = backend(query, pool_k, fetch_k, rrf_k)
+    elif STORAGE_BACKEND == "sqlite":
         from retrieval import sqlite_store
 
-        candidates = sqlite_store.retrieve(query, embed_query(query), pool_k, fetch_k, rrf_k)
+        candidates = sqlite_store.retrieve(
+            query, (embed or embed_query)(query), pool_k, fetch_k, rrf_k
+        )
     else:
-        candidates = _retrieve_postgres(query, pool_k, fetch_k, rrf_k)
+        candidates = _retrieve_postgres(query, pool_k, fetch_k, rrf_k, embed=embed)
 
     candidates = _apply_filters(candidates, since, source_filter)
 
     if rerank:
-        candidates = _cross_encoder_rerank(query, candidates)
+        candidates = (reranker or _cross_encoder_rerank)(query, candidates)
     return _diversify_select(candidates, top_k)
