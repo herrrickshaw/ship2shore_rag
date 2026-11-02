@@ -3,7 +3,7 @@
 Portable, single-file copies of the shore-side Postgres corpus — built by
 `cli.py export-sqlite`, meant to be copied aboard a vessel and used with
 `STORAGE_BACKEND=sqlite` (no Postgres, no network required). See the main
-[README's "Shipboard deployment"](../README.md#shipboard-deployment) section
+[README's "Shipboard deployment"](../docs/shipboard-deployment.md) section
 for the full design rationale.
 
 ## Current snapshot
