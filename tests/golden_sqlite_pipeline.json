@@ -1,0 +1,89 @@
+{
+ "ask_extractive": {
+  "answer": null,
+  "urls": [
+   "http://a/1",
+   "http://a/1",
+   "http://m/1",
+   "http://w/1",
+   "http://w/1"
+  ]
+ },
+ "context": "[1] T (U)\nCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+ "filtered": [
+  "http://m/1"
+ ],
+ "ingested": 3,
+ "queries": {
+  "engine room fire fuel": [
+   {
+    "published_at": "2023-05-05T00:00:00Z",
+    "score": 0.033060109,
+    "source": "maib",
+    "title": "Engine room fire",
+    "url": "http://m/1"
+   },
+   {
+    "published_at": "2024-01-02T00:00:00Z",
+    "score": 0.016666667,
+    "source": "arxiv",
+    "title": "Hull fatigue",
+    "url": "http://a/1"
+   },
+   {
+    "published_at": null,
+    "score": 0.015873016,
+    "source": "wikipedia",
+    "title": "Strait of Hormuz",
+    "url": "http://w/1"
+   }
+  ],
+  "hull fatigue welded": [
+   {
+    "published_at": "2024-01-02T00:00:00Z",
+    "score": 0.032539683,
+    "source": "arxiv",
+    "title": "Hull fatigue",
+    "url": "http://a/1"
+   },
+   {
+    "published_at": "2024-01-02T00:00:00Z",
+    "score": 0.032018443,
+    "source": "arxiv",
+    "title": "Hull fatigue",
+    "url": "http://a/1"
+   },
+   {
+    "published_at": "2023-05-05T00:00:00Z",
+    "score": 0.016666667,
+    "source": "maib",
+    "title": "Engine room fire",
+    "url": "http://m/1"
+   }
+  ],
+  "strait chokepoint piracy": [
+   {
+    "published_at": null,
+    "score": 0.032795699,
+    "source": "wikipedia",
+    "title": "Strait of Hormuz",
+    "url": "http://w/1"
+   },
+   {
+    "published_at": null,
+    "score": 0.032786885,
+    "source": "wikipedia",
+    "title": "Strait of Hormuz",
+    "url": "http://w/1"
+   },
+   {
+    "published_at": "2024-01-02T00:00:00Z",
+    "score": 0.016666667,
+    "source": "arxiv",
+    "title": "Hull fatigue",
+    "url": "http://a/1"
+   }
+  ]
+ },
+ "reingested": 0
+}
