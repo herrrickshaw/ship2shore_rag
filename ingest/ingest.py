@@ -6,6 +6,10 @@ skipped (previous behavior, never re-chunked); changed content replaces the
 document's chunks in place instead of being silently skipped or duplicated.
 """
 
+from __future__ import annotations
+
+from typing import Callable
+
 import psycopg
 from pgvector.psycopg import register_vector
 from psycopg.types.json import Json
@@ -16,21 +20,39 @@ from ingest.embed import embed_texts
 from ingest.freshness import compute_hash
 from ingest.regulation_refs import extract_refs
 
+Embedder = Callable[["list[str]"], "list[list[float]]"]  # injection seam for embeddings
 
-def ingest_documents(documents: list[dict], sqlite_path: str | None = None) -> int:
+
+def _prepare_chunks(
+    text: str, embed: Embedder | None
+) -> tuple[list[str], list[list[float]], list[list[dict]]]:
+    """Chunk text, embed each chunk, and extract regulation refs per chunk.
+
+    Returns ([], [], []) when the text yields no chunks (embedder is not called).
+    """
+    chunks = chunk_text(text)
+    if not chunks:
+        return [], [], []
+    embeddings = (embed or embed_texts)(chunks)
+    return chunks, embeddings, [extract_refs(chunk) for chunk in chunks]
+
+
+def ingest_documents(
+    documents: list[dict], sqlite_path: str | None = None, embed: Embedder | None = None
+) -> int:
     """Upserts documents + their chunks/embeddings. Returns count of documents
     ingested or updated in place (documents already present by URL whose
     content_hash is unchanged are skipped, not re-embedded).
 
     sqlite_path overrides SQLITE_PATH when STORAGE_BACKEND == "sqlite" —
     unused otherwise (kept optional so cli.py's existing ingest_documents(docs)
-    call site needs no change)."""
+    call site needs no change). embed overrides the local sentence-transformers embedder."""
     if STORAGE_BACKEND == "sqlite":
-        return _ingest_sqlite(documents, sqlite_path)
-    return _ingest_postgres(documents)
+        return _ingest_sqlite(documents, sqlite_path, embed)
+    return _ingest_postgres(documents, embed)
 
 
-def _ingest_postgres(documents: list[dict]) -> int:
+def _ingest_postgres(documents: list[dict], embed: Embedder | None = None) -> int:
     changed = 0
     with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
         register_vector(conn)
@@ -42,11 +64,9 @@ def _ingest_postgres(documents: list[dict]) -> int:
                 if existing and existing[1] == content_hash:
                     continue
 
-                chunks = chunk_text(doc["text"])
+                chunks, embeddings, refs_per_chunk = _prepare_chunks(doc["text"], embed)
                 if not chunks:
                     continue
-                embeddings = embed_texts(chunks)
-                refs_per_chunk = [extract_refs(chunk) for chunk in chunks]
 
                 if existing:
                     doc_id = existing[0]
@@ -92,7 +112,9 @@ def _ingest_postgres(documents: list[dict]) -> int:
     return changed
 
 
-def _ingest_sqlite(documents: list[dict], sqlite_path: str | None) -> int:
+def _ingest_sqlite(
+    documents: list[dict], sqlite_path: str | None, embed: Embedder | None = None
+) -> int:
     from retrieval import sqlite_store
 
     path = sqlite_path or sqlite_store.SQLITE_PATH
@@ -108,11 +130,9 @@ def _ingest_sqlite(documents: list[dict], sqlite_path: str | None) -> int:
             if row and row[1] == content_hash:
                 continue
 
-            chunks = chunk_text(doc["text"])
+            chunks, embeddings, refs_per_chunk = _prepare_chunks(doc["text"], embed)
             if not chunks:
                 continue
-            embeddings = embed_texts(chunks)
-            refs_per_chunk = [extract_refs(chunk) for chunk in chunks]
 
             if row:
                 doc_id = row[0]
