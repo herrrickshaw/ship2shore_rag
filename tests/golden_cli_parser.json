@@ -1,0 +1,2985 @@
+{
+ "actions": [
+  {
+   "choices": null,
+   "const": null,
+   "default": "==SUPPRESS==",
+   "dest": "help",
+   "help": "show this help message and exit",
+   "kind": "_HelpAction",
+   "nargs": 0,
+   "opts": [
+    "-h",
+    "--help"
+   ],
+   "required": false,
+   "type": null
+  },
+  {
+   "dest": "command",
+   "required": true,
+   "subparsers": {
+    "ask": {
+     "help": "ask a question \u2014 hybrid retrieval over the corpus, optionally generated into a cited answer",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "question",
+        "help": "omit when using --port",
+        "kind": "_StoreAction",
+        "nargs": "?",
+        "opts": [],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "port",
+        "help": "shortcut: build a navigational/regulatory briefing question for this port or strait, e.g. \"Strait of Hormuz\" (composes on top of already-ingested sources \u2014 no new retrieval)",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--port"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": true,
+        "default": false,
+        "dest": "checklist",
+        "help": "structure the generated answer as an ordered, cited checklist instead of prose (no effect without generation)",
+        "kind": "_StoreTrueAction",
+        "nargs": 0,
+        "opts": [
+         "--checklist"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": 5,
+        "dest": "top_k",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--top-k"
+        ],
+        "required": false,
+        "type": "int"
+       },
+       {
+        "choices": null,
+        "const": true,
+        "default": false,
+        "dest": "no_generate",
+        "help": null,
+        "kind": "_StoreTrueAction",
+        "nargs": 0,
+        "opts": [
+         "--no-generate"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": true,
+        "default": false,
+        "dest": "no_rerank",
+        "help": "skip the cross-encoder reranking pass, use RRF fusion order as-is",
+        "kind": "_StoreTrueAction",
+        "nargs": 0,
+        "opts": [
+         "--no-rerank"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "since",
+        "help": "only consider documents published/reported on or after this date (only arxiv/maib have a real date; others are excluded when this is set)",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--since"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": [
+         "arxiv",
+         "file",
+         "maib",
+         "ntm",
+         "ntsb",
+         "pdf",
+         "wikipedia"
+        ],
+        "const": null,
+        "default": null,
+        "dest": "source_filter",
+        "help": "only consider documents from this ingestion source",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--source-filter"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "export",
+        "help": "write a compact report to this path (.html, .txt, or .md)",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--export"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": [
+         "html",
+         "txt",
+         "md"
+        ],
+        "const": null,
+        "default": null,
+        "dest": "format",
+        "help": "defaults to --export's extension",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--format"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_ask"
+     }
+    },
+    "crew": {
+     "help": "seafarer onboarding \u2014 rank, nationality, STCW certification, sign-on/off",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "crew_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "sign a crew member on to a vessel",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "name",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "rank",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": "vessel name or IMO number",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--vessel"
+             ],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "nationality",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--nationality"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "stcw_number",
+             "help": "STCW certificate number",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--stcw-number"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "stcw_expiry",
+             "help": "STCW certificate expiry date (YYYY-MM-DD)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--stcw-expiry"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "sign_on",
+             "help": "sign-on date (YYYY-MM-DD)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--sign-on"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_crew_add"
+          }
+         },
+         "expiring-certs": {
+          "help": "list currently-aboard crew whose STCW certificate has expired or is expiring soon",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": 30,
+             "dest": "days",
+             "help": "look-ahead window in days (default: 30)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--days"
+             ],
+             "required": false,
+             "type": "int"
+            }
+           ],
+           "func": "cmd_crew_expiring_certs"
+          }
+         },
+         "list": {
+          "help": "list crew, optionally filtered to one vessel",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--vessel"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_crew_list"
+          }
+         },
+         "signoff": {
+          "help": "sign a crew member off",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "crew_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "date",
+             "help": "sign-off date (YYYY-MM-DD)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--date"
+             ],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_crew_signoff"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "drydock": {
+     "help": "dry-docking events \u2014 scheduling, yard, cost",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "drydock_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "schedule a dry-docking event",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "yard",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--yard"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "location",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--location"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "start",
+             "help": "planned start date (YYYY-MM-DD)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--start"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "end",
+             "help": "planned end date (YYYY-MM-DD)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--end"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "scope",
+             "help": "scope of work description",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--scope"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "cost",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--cost"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "currency",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--currency"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_drydock_add"
+          }
+         },
+         "list": {
+          "help": "list a vessel's dry-docking events",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            }
+           ],
+           "func": "cmd_drydock_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "equipment": {
+     "help": "engineering asset registry (main engine, generators, etc.) per vessel",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "equipment_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "register a piece of equipment on a vessel",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "name",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "type",
+             "help": "e.g. diesel engine, generator, pump",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--type"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "manufacturer",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--manufacturer"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "model",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--model"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "serial",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--serial"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_equipment_add"
+          }
+         },
+         "list": {
+          "help": "list a vessel's equipment",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            }
+           ],
+           "func": "cmd_equipment_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "eval": {
+     "help": "run the retrieval eval harness (recall@k / MRR against eval/queries.yaml, rerank on vs off)",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "<lambda>"
+     }
+    },
+    "export-sqlite": {
+     "help": "snapshot Postgres corpus to a portable SQLite file for vessel deployment",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "output",
+        "help": "defaults to SQLITE_PATH from config",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--output"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_export_sqlite"
+     }
+    },
+    "fleet": {
+     "help": "read-only cross-vessel rollup \u2014 open incidents, cert expiries, drydocks",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "fleet_command",
+        "required": true,
+        "subparsers": {
+         "status": {
+          "help": "fleet-wide safety/compliance/drydock snapshot",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": 30,
+             "dest": "cert_days",
+             "help": "STCW cert look-ahead window in days",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--cert-days"
+             ],
+             "required": false,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": 90,
+             "dest": "drydock_days",
+             "help": "drydock look-ahead window in days",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--drydock-days"
+             ],
+             "required": false,
+             "type": "int"
+            }
+           ],
+           "func": "cmd_fleet_status"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "fuel": {
+     "help": "bunkering/consumption/ROB log for a vessel",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "fuel_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "log a fuel event",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "fuel_type",
+             "help": "e.g. VLSFO, MGO, LSMGO",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "bunkering",
+              "consumption",
+              "ROB"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "event_type",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "quantity_mt",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "rob",
+             "help": "remaining on board after this event, in mt",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--rob"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "location",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--location"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_fuel_add"
+          }
+         },
+         "list": {
+          "help": "list a vessel's fuel log, newest first",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            }
+           ],
+           "func": "cmd_fuel_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "hazard-brief": {
+     "help": "retrieve similar past incidents + governing regulations for a job description (retrieval only, not a predictive risk score)",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "job_description",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [],
+        "required": true,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": 5,
+        "dest": "top_k",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--top-k"
+        ],
+        "required": false,
+        "type": "int"
+       },
+       {
+        "choices": [
+         "arxiv",
+         "file",
+         "maib",
+         "ntm",
+         "ntsb",
+         "pdf",
+         "wikipedia"
+        ],
+        "const": null,
+        "default": null,
+        "dest": "source_filter",
+        "help": "restrict to one source",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--source-filter"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "export",
+        "help": "write a compact report to this path (.html, .txt, or .md)",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--export"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": [
+         "html",
+         "txt",
+         "md"
+        ],
+        "const": null,
+        "default": null,
+        "dest": "format",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--format"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_hazard_brief"
+     }
+    },
+    "ingest": {
+     "help": "pull literature into the corpus from a source (arXiv, Wikipedia, MAIB, NtM, PDF, or local files)",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": [
+         "arxiv",
+         "file",
+         "maib",
+         "ntm",
+         "ntsb",
+         "pdf",
+         "wikipedia"
+        ],
+        "const": null,
+        "default": null,
+        "dest": "source",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--source"
+        ],
+        "required": true,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "query",
+        "help": "arxiv search query (omit to run the built-in seed queries)",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--query"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": 20,
+        "dest": "max_results",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--max-results"
+        ],
+        "required": false,
+        "type": "int"
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": "ingest/sources.yaml",
+        "dest": "config",
+        "help": null,
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--config"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": null,
+        "dest": "path",
+        "help": "glob for --source file, e.g. \"./docs/**/*.pdf\"",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--path"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_ingest"
+     }
+    },
+    "init-db": {
+     "help": "create/update the schema (literature + operations tables)",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_init_db"
+     }
+    },
+    "log": {
+     "help": "master/captain's, deck, and engine logbook entries",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "log_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "add a log entry (captain's-log entries require the master role)",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": "vessel name or IMO number",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "deck",
+              "engine",
+              "captain"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "log_type",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "text",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "lat",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--lat"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "lon",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--lon"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_log_add"
+          }
+         },
+         "list": {
+          "help": "list a vessel's log entries, newest first",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "deck",
+              "engine",
+              "captain"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "type",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--type"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_log_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "maintenance": {
+     "help": "repair/maintenance job history for a piece of equipment",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "maintenance_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "log a maintenance/repair job",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "equipment_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            },
+            {
+             "choices": [
+              "scheduled",
+              "breakdown",
+              "repair",
+              "inspection"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "job_type",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "description",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "hours",
+             "help": "running hours at time of job",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--hours"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "parts_used",
+             "help": "free text, e.g. \"PN-9001 x1\"",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--parts-used"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_maintenance_add"
+          }
+         },
+         "list": {
+          "help": "list an equipment's maintenance history, newest first",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "equipment_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            }
+           ],
+           "func": "cmd_maintenance_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "parts": {
+     "help": "EPC \u2014 electronic parts catalog",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "parts_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "add a spare part to an equipment's catalog entry",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "equipment_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "part_number",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "part_name",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "manufacturer",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--manufacturer"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "qty",
+             "help": "stock quantity",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--qty"
+             ],
+             "required": false,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_parts_add"
+          }
+         },
+         "list": {
+          "help": "list an equipment's spare parts",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "equipment_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            }
+           ],
+           "func": "cmd_parts_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "procurement": {
+     "help": "purchase-to-pay \u2014 orders tied to the EPC parts catalog",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "procurement_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "request a purchase order",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "items",
+             "help": "free text, e.g. \"PN-9001 Cylinder liner x2\"",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "equipment_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--equipment-id"
+             ],
+             "required": false,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "supplier",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--supplier"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "cost",
+             "help": "total cost",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--cost"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "currency",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--currency"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "expected_delivery",
+             "help": "YYYY-MM-DD",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--expected-delivery"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_procurement_add"
+          }
+         },
+         "approve": {
+          "help": "approve a requested purchase order",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "po_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_procurement_approve"
+          }
+         },
+         "list": {
+          "help": "list a vessel's purchase orders",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "requested",
+              "approved",
+              "ordered",
+              "received",
+              "cancelled"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "status",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--status"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_procurement_list"
+          }
+         },
+         "status": {
+          "help": "update a purchase order's status (e.g. ordered, received)",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "po_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            },
+            {
+             "choices": [
+              "requested",
+              "approved",
+              "ordered",
+              "received",
+              "cancelled"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "status",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_procurement_status"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "safety": {
+     "help": "QHSE \u2014 near-miss/incident/audit/inspection reporting",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "safety_command",
+        "required": true,
+        "subparsers": {
+         "close": {
+          "help": "close a safety report with a corrective action",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "incident_id",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "corrective_action",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--corrective-action"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_safety_close"
+          }
+         },
+         "list": {
+          "help": "list a vessel's safety reports, newest first",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "open",
+              "closed"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "status",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--status"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_safety_list"
+          }
+         },
+         "report": {
+          "help": "report a near-miss, incident, audit, or inspection (no role restriction \u2014 anyone can report)",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "vessel",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "near_miss",
+              "incident",
+              "audit",
+              "inspection"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "incident_type",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "description",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "severity",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--severity"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": true,
+             "default": false,
+             "dest": "find_similar",
+             "help": "after reporting, retrieve similar past incidents from the ingested corpus",
+             "kind": "_StoreTrueAction",
+             "nargs": 0,
+             "opts": [
+              "--find-similar"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_safety_report"
+          }
+         },
+         "reportable": {
+          "help": "list open critical incidents that trigger SOLAS I/21's flag-State casualty report",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_safety_reportable"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "serve": {
+     "help": "serve the read-only web UI (localhost only by default \u2014 see README 'Web UI')",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_serve"
+     }
+    },
+    "serve-ingest": {
+     "help": "serve the ingestion microservice \u2014 scheduled + on-demand ingestion over HTTP (localhost only by default \u2014 see README 'Ingestion service')",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       }
+      ],
+      "func": "cmd_serve_ingest"
+     }
+    },
+    "training-gaps": {
+     "help": "crew with an STCW cert expiring soon, cited against the ingested STCW convention text",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "choices": null,
+        "const": null,
+        "default": 30,
+        "dest": "days",
+        "help": "look-ahead window in days (default: 30)",
+        "kind": "_StoreAction",
+        "nargs": null,
+        "opts": [
+         "--days"
+        ],
+        "required": false,
+        "type": "int"
+       }
+      ],
+      "func": "cmd_training_gaps"
+     }
+    },
+    "user": {
+     "help": "IAM \u2014 register users and their role (master/chief_engineer/officer/deck_crew/engine_crew/shore_staff)",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "user_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "register a user",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "name",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": [
+              "master",
+              "chief_engineer",
+              "officer",
+              "deck_crew",
+              "engine_crew",
+              "shore_staff"
+             ],
+             "const": null,
+             "default": null,
+             "dest": "role",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--role"
+             ],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "email",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--email"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_user_add"
+          }
+         },
+         "list": {
+          "help": "list registered users",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_user_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    },
+    "vessel": {
+     "help": "ship specifics \u2014 IMO number, flag, type, tonnage, main engine",
+     "parser": {
+      "actions": [
+       {
+        "choices": null,
+        "const": null,
+        "default": "==SUPPRESS==",
+        "dest": "help",
+        "help": "show this help message and exit",
+        "kind": "_HelpAction",
+        "nargs": 0,
+        "opts": [
+         "-h",
+         "--help"
+        ],
+        "required": false,
+        "type": null
+       },
+       {
+        "dest": "vessel_command",
+        "required": true,
+        "subparsers": {
+         "add": {
+          "help": "register a vessel",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "name",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [],
+             "required": true,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "imo",
+             "help": "IMO number",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--imo"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "flag",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--flag"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "type",
+             "help": "e.g. bulk carrier, container ship, tanker",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--type"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "gt",
+             "help": "gross tonnage",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--gt"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "dwt",
+             "help": "deadweight tonnage",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--dwt"
+             ],
+             "required": false,
+             "type": "float"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "build_year",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--build-year"
+             ],
+             "required": false,
+             "type": "int"
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "class_society",
+             "help": "e.g. DNV, ABS, Lloyd's Register",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--class-society"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "main_engine",
+             "help": null,
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--main-engine"
+             ],
+             "required": false,
+             "type": null
+            },
+            {
+             "choices": null,
+             "const": null,
+             "default": null,
+             "dest": "user",
+             "help": "acting user's name (or set SHIP2SHORE_USER)",
+             "kind": "_StoreAction",
+             "nargs": null,
+             "opts": [
+              "--user"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_vessel_add"
+          }
+         },
+         "list": {
+          "help": "list registered vessels",
+          "parser": {
+           "actions": [
+            {
+             "choices": null,
+             "const": null,
+             "default": "==SUPPRESS==",
+             "dest": "help",
+             "help": "show this help message and exit",
+             "kind": "_HelpAction",
+             "nargs": 0,
+             "opts": [
+              "-h",
+              "--help"
+             ],
+             "required": false,
+             "type": null
+            }
+           ],
+           "func": "cmd_vessel_list"
+          }
+         }
+        }
+       }
+      ],
+      "func": null
+     }
+    }
+   }
+  }
+ ],
+ "func": null
+}
