@@ -150,14 +150,15 @@ def cmd_training_gaps(args) -> None:
             print(f"    cites: {c['title']} ({c['url']})")
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="ship2shore_rag CLI")
-    sub = parser.add_subparsers(dest="command", required=True)
-
+def _add_init_db(sub) -> None:
+    """Registers the `init-db` subcommand."""
     sub.add_parser(
         "init-db", help="create/update the schema (literature + operations tables)"
     ).set_defaults(func=cmd_init_db)
 
+
+def _add_ingest(sub) -> None:
+    """Registers the `ingest` subcommand."""
     p_ingest = sub.add_parser(
         "ingest",
         help="pull literature into the corpus from a source (arXiv, Wikipedia, MAIB, NtM, PDF, or local files)",
@@ -177,6 +178,9 @@ def main() -> None:
     )
     p_ingest.set_defaults(func=cmd_ingest)
 
+
+def _add_ask(sub) -> None:
+    """Registers the `ask` subcommand."""
     p_ask = sub.add_parser(
         "ask",
         help="ask a question — hybrid retrieval over the corpus, optionally generated into a cited answer",
@@ -225,6 +229,9 @@ def main() -> None:
     )
     p_ask.set_defaults(func=cmd_ask)
 
+
+def _add_hazard_brief(sub) -> None:
+    """Registers the `hazard-brief` subcommand."""
     p_hazard = sub.add_parser(
         "hazard-brief",
         help="retrieve similar past incidents + governing regulations for a job description "
@@ -241,6 +248,9 @@ def main() -> None:
     p_hazard.add_argument("--format", default=None, choices=["html", "txt", "md"])
     p_hazard.set_defaults(func=cmd_hazard_brief)
 
+
+def _add_training_gaps(sub) -> None:
+    """Registers the `training-gaps` subcommand."""
     p_training = sub.add_parser(
         "training-gaps",
         help="crew with an STCW cert expiring soon, cited against the ingested STCW convention text",
@@ -250,6 +260,9 @@ def main() -> None:
     )
     p_training.set_defaults(func=cmd_training_gaps)
 
+
+def _add_export_sqlite(sub) -> None:
+    """Registers the `export-sqlite` subcommand."""
     p_export = sub.add_parser(
         "export-sqlite",
         help="snapshot Postgres corpus to a portable SQLite file for vessel deployment",
@@ -257,6 +270,9 @@ def main() -> None:
     p_export.add_argument("--output", default=None, help="defaults to SQLITE_PATH from config")
     p_export.set_defaults(func=cmd_export_sqlite)
 
+
+def _add_serve_and_eval(sub) -> None:
+    """Registers the `eval`, `serve` and `serve-ingest` subcommands."""
     sub.add_parser(
         "eval",
         help="run the retrieval eval harness (recall@k / MRR against eval/queries.yaml, rerank on vs off)",
@@ -273,9 +289,24 @@ def main() -> None:
         "(localhost only by default — see README 'Ingestion service')",
     ).set_defaults(func=cmd_serve_ingest)
 
-    ops_cli.register(sub)
 
-    args = parser.parse_args()
+def build_parser() -> argparse.ArgumentParser:
+    """Builds the full CLI parser (literature commands plus the operations subcommands)."""
+    parser = argparse.ArgumentParser(description="ship2shore_rag CLI")
+    sub = parser.add_subparsers(dest="command", required=True)
+    _add_init_db(sub)
+    _add_ingest(sub)
+    _add_ask(sub)
+    _add_hazard_brief(sub)
+    _add_training_gaps(sub)
+    _add_export_sqlite(sub)
+    _add_serve_and_eval(sub)
+    ops_cli.register(sub)
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
     args.func(args)
 
 

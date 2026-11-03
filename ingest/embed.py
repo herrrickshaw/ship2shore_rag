@@ -1,5 +1,7 @@
 """Local embeddings via sentence-transformers — no API key, no per-call cost."""
 
+from __future__ import annotations
+
 from functools import lru_cache
 
 from config import EMBEDDING_MODEL
@@ -13,10 +15,12 @@ def _model():
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Unit-normalised embeddings (EMBEDDING_DIM floats) for each text; [] for no input."""
     if not texts:
         return []
     return _model().encode(texts, show_progress_bar=False, normalize_embeddings=True).tolist()
 
 
 def embed_query(text: str) -> list[float]:
+    """Embed one query string."""
     return embed_texts([text])[0]

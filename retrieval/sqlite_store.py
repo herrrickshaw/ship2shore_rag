@@ -6,6 +6,8 @@ file: no Postgres, no internet. Generation (Claude) is still optional and still
 needs connectivity — see README "Shipboard deployment".
 """
 
+from __future__ import annotations
+
 import json
 import re
 import sqlite3
@@ -13,6 +15,7 @@ import sqlite3
 import sqlite_vec
 
 from config import EMBEDDING_DIM, SQLITE_PATH
+from retrieval.fusion import rrf_fuse, top_ids
 
 _WORD_RE = re.compile(r"\w+")
 
@@ -151,7 +154,7 @@ def retrieve(
             """,
             (sqlite_vec.serialize_float32(query_embedding), fetch_k),
         ).fetchall()
-        dense_rank = {row[0]: i for i, row in enumerate(dense_rows)}
+        dense_ids = [row[0] for row in dense_rows]
 
         fts_query = _fts5_query(query)
         sparse_rows = (
@@ -162,26 +165,21 @@ def retrieve(
             if fts_query
             else []
         )
-        sparse_rank = {row[0]: i for i, row in enumerate(sparse_rows)}
+        sparse_ids = [row[0] for row in sparse_rows]
 
-        fused: dict[int, float] = {}
-        for rowid, rank in dense_rank.items():
-            fused[rowid] = fused.get(rowid, 0.0) + 1.0 / (rrf_k + rank)
-        for rowid, rank in sparse_rank.items():
-            fused[rowid] = fused.get(rowid, 0.0) + 1.0 / (rrf_k + rank)
-
-        top_ids = sorted(fused, key=fused.get, reverse=True)[:top_k]
-        if not top_ids:
+        fused = rrf_fuse(dense_ids, sparse_ids, rrf_k)
+        ranked_ids = top_ids(fused, top_k)
+        if not ranked_ids:
             return []
 
-        placeholders = ",".join("?" * len(top_ids))
+        placeholders = ",".join("?" * len(ranked_ids))
         rows = conn.execute(
             f"""
             SELECT c.id, c.content, d.title, d.url, d.source, d.published_at, c.regulation_refs
             FROM chunks c JOIN documents d ON d.id = c.document_id
             WHERE c.id IN ({placeholders})
             """,
-            top_ids,
+            ranked_ids,
         ).fetchall()
         by_id = {r[0]: r for r in rows}
         return [
@@ -194,7 +192,7 @@ def retrieve(
                 "regulation_refs": json.loads(by_id[i][6]),
                 "score": fused[i],
             }
-            for i in top_ids
+            for i in ranked_ids
             if i in by_id
         ]
     finally:
