@@ -2,6 +2,8 @@
 
 > **Walkthrough:** [How-to post on masaladeutsch](https://masaladeutsch.blogspot.com/2026/10/how-to-use-ship2shorerag-offline.html) · [Video on YouTube](https://www.youtube.com/watch?v=W6YYxlKcGms)
 
+> **More videos:** [Ship2shore RAG walkthrough](https://www.youtube.com/watch?v=VeQHhoIb9F0) · [Ops demo](https://www.youtube.com/watch?v=JhEN2yKuYWY)
+
 <!-- how-to-use-with-ai -->
 > **New here?** See [How to use this repo with AI (Claude, Gemini, ChatGPT)](HOW_TO_USE_WITH_AI.md) — clone it, paste it into an AI tool, and ask in plain English.
 
