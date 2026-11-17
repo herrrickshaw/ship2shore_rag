@@ -1,5 +1,5 @@
 psycopg[binary]>=3.1
-pgvector>=0.2
+pgvector>=0.5.1
 sqlite-vec>=0.1  # vessel-side backend: single-file, no server — see README "Shipboard deployment"
 sentence-transformers>=2.7
 requests>=2.31
