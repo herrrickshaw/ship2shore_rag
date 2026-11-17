@@ -17,7 +17,7 @@ from config import EMBEDDING_DIM, SQLITE_PATH
 _WORD_RE = re.compile(r"\w+")
 
 
-def _fts5_query(text: str) -> str:
+def _fts5_query(text: str, op: str = "AND") -> str:
     """FTS5's MATCH treats the raw string as query syntax, not plain text --
     unlike Postgres's plainto_tsquery() on the other backend, a bare "?" (or
     any of FTS5's other operator characters) is a syntax error, not a
@@ -26,7 +26,7 @@ def _fts5_query(text: str) -> str:
     that (a quoted FTS5 term is always literal) while keeping
     plainto_tsquery's AND-every-lexeme behavior, the closest sqlite-side
     equivalent."""
-    return " AND ".join(f'"{w}"' for w in _WORD_RE.findall(text))
+    return f" {op} ".join(f'"{w}"' for w in _WORD_RE.findall(text))
 
 
 SCHEMA = f"""
@@ -154,14 +154,17 @@ def retrieve(
         dense_rank = {row[0]: i for i, row in enumerate(dense_rows)}
 
         fts_query = _fts5_query(query)
-        sparse_rows = (
-            conn.execute(
-                "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? ORDER BY rank LIMIT ?",
-                (fts_query, fetch_k),
+        sparse_sql = "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? ORDER BY rank LIMIT ?"
+        sparse_rows = conn.execute(sparse_sql, (fts_query, fetch_k)).fetchall() if fts_query else []
+        if fts_query and not sparse_rows:
+            # Unlike plainto_tsquery, FTS5 has no stopword list and no stemming, so
+            # AND-ing every token of a natural question ("What caused the
+            # grounding?") requires the literal word "what" to be in the chunk and
+            # usually matches nothing, leaving the hybrid search dense-only. Fall
+            # back to OR and let BM25 (ORDER BY rank) weight the matching terms.
+            sparse_rows = conn.execute(
+                sparse_sql, (_fts5_query(query, op="OR"), fetch_k)
             ).fetchall()
-            if fts_query
-            else []
-        )
         sparse_rank = {row[0]: i for i, row in enumerate(sparse_rows)}
 
         fused: dict[int, float] = {}
