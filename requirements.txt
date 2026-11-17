@@ -1,7 +1,7 @@
 psycopg[binary]>=3.1
 pgvector>=0.2
 sqlite-vec>=0.1  # vessel-side backend: single-file, no server — see README "Shipboard deployment"
-sentence-transformers>=2.7
+sentence-transformers>=6.3.0
 requests>=2.31
 pypdf>=4.2
 cryptography>=42.0  # pypdf needs this for AES-encrypted PDFs (some gov't reports restrict editing)
