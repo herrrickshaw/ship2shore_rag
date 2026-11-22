@@ -253,9 +253,11 @@ def test_procurement_lifecycle(fleet):
     assert out.strip() == "added purchase order #1 for MV Tester: PN-1 liner x2 (status: requested)"
     out = lines(fleet("procurement", "list", "MV Tester"))
     assert "[requested]" in out[0] and "supplier=Acme" in out[0] and "cost=1500.0" in out[0]
+    assert store.list_purchase_orders(1)[0]["requested_by"] == 1
     assert fleet("procurement", "approve", "1", "--user", "alice").strip() == (
         "purchase order #1 approved"
     )
+    assert store.list_purchase_orders(1)[0]["approved_by"] == 1
     assert lines(fleet("procurement", "list", "MV Tester", "--status", "approved"))
     assert fleet("procurement", "list", "MV Tester", "--status", "requested").strip() == ""
     out = fleet("procurement", "status", "1", "received", "--user", "alice")
@@ -290,6 +292,7 @@ def test_drydock_add_and_list(fleet):
     assert "2027-01-10 to 2027-02-10" in line
     fleet("drydock", "add", "MV Tester", "--user", "alice")
     assert "-  - to -" in fleet("drydock", "list", "MV Tester")
+    assert {d["coordinated_by"] for d in store.list_drydock_events(1)} == {1}
 
 
 def test_drydock_requires_privileged_user(fleet):
@@ -308,6 +311,9 @@ def test_safety_report_is_unrestricted_and_lists(fleet):
     fleet("safety", "report", "MV Tester", "incident", "Fire", "--severity", "critical")
     all_lines = lines(fleet("safety", "list", "MV Tester"))
     assert len(all_lines) == 2
+    by_desc = {i["description"]: i for i in store.list_safety_incidents(1)}
+    assert by_desc["Slipped on deck"]["reported_by"] == 2  # dan
+    assert by_desc["Fire"]["reported_by"] is None  # anonymous report
     assert lines(fleet("safety", "list", "MV Tester", "--status", "closed")) == []
     assert "Slipped on deck" in fleet("safety", "list", "MV Tester", "--status", "open")
 
@@ -381,9 +387,9 @@ def test_fleet_status_populated_and_windows(fleet):
     soon = (date.today() + timedelta(days=5)).isoformat()
     fleet("crew", "add", "Jane", "Master", "--vessel", "MV Tester", "--stcw-expiry", soon,
           "--user", "alice")  # fmt: skip
+    fleet("safety", "report", "MV Tester", "audit", "Audit")
     fleet("safety", "report", "MV Tester", "incident", "Fire", "--severity", "high")
     fleet("safety", "report", "MV Tester", "incident", "Smoke", "--severity", "high")
-    fleet("safety", "report", "MV Tester", "audit", "Audit")
     start = (date.today() + timedelta(days=45)).isoformat()
     fleet("drydock", "add", "MV Tester", "--yard", "Yard1", "--start", start, "--user", "alice")
     out = fleet("fleet", "status")
