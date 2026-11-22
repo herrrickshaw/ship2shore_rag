@@ -353,6 +353,7 @@ class Vec:
 class ExpPg:
     def __init__(self, docs, chunks):
         self.docs, self.chunks = docs, chunks
+        self.sql = []
 
     def __enter__(self):
         return self
@@ -361,6 +362,7 @@ class ExpPg:
         return False
 
     def execute(self, sql, params=()):
+        self.sql.append(" ".join(sql.split()))
         rows = self.docs if "FROM documents" in sql else self.chunks[params[0]]
         return types.SimpleNamespace(fetchall=lambda: rows)
 
@@ -391,9 +393,14 @@ def test_export_sqlite_copies_documents_and_chunks(monkeypatch, tmp_path):
         2: [("b one", Vec([0, 0, 1.0, 0]), [])],
         3: [],
     }  # fmt: skip
-    monkeypatch.setattr(export_mod.psycopg, "connect", lambda dsn: ExpPg(docs, chunks))
+    fake_pg = ExpPg(docs, chunks)
+    monkeypatch.setattr(export_mod.psycopg, "connect", lambda dsn: fake_pg)
     monkeypatch.setattr(export_mod, "register_vector", lambda c: None)
     assert export_mod.export_sqlite(out) == (2, 3)
+    chunk_sql = next(q for q in fake_pg.sql if "FROM chunks" in q)
+    assert chunk_sql.endswith(
+        "WHERE document_id = %s ORDER BY chunk_index"
+    )  # ascending, so ids follow order
     rows = q(out, "SELECT url, published_at FROM documents ORDER BY id")
     assert rows == [("u1", "2024-01-01T00:00:00"), ("u2", None), ("u3", None)]
     contents = q(out, "SELECT content, chunk_index, regulation_refs FROM chunks ORDER BY id")

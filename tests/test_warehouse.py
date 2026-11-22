@@ -79,6 +79,18 @@ def test_make_position_drifts_from_start(producer):
     }
 
 
+def test_random_ranges_are_the_documented_bounds(producer, monkeypatch):
+    mod = producer[0]
+    calls = []
+    monkeypatch.setattr(mod.random, "uniform", lambda lo, hi: calls.append((lo, hi)) or float(lo))
+    mod.make_position("Dali", 1)
+    assert calls == [(8, 18), (0, 359)]  # speed knots, heading degrees
+    calls.clear()
+    for sensor, (lo, hi, _unit) in mod.SENSORS.items():
+        mod.make_reading("Dali", sensor)
+        assert calls[-1] == (lo, hi)
+
+
 def test_every_vessel_has_a_start_position(producer):
     mod = producer[0]
     assert set(mod.VESSELS) == set(mod.START_POS)
