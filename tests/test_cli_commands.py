@@ -146,8 +146,12 @@ def test_cmd_ask_maps_flags_to_pipeline_arguments(monkeypatch):
     monkeypatch.setattr(cli, "ask", fake_ask)
     cli.cmd_ask(
         ask_args(
-            top_k=9, no_generate=True, no_rerank=True, since="2025-03-04",
-            source_filter="maib", checklist=True,
+            top_k=9,
+            no_generate=True,
+            no_rerank=True,
+            since="2025-03-04",
+            source_filter="maib",
+            checklist=True,
         )  # fmt: skip
     )
     assert seen["q"] == "why?"

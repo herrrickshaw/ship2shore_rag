@@ -22,7 +22,9 @@ def test_load_pdf_joins_pages_and_strips_nul(monkeypatch, tmp_path):
             return self.t
 
     monkeypatch.setattr(
-        loaders, "PdfReader", lambda path: types.SimpleNamespace(pages=[Page("a\x00b"), Page(None), Page("c")])
+        loaders,
+        "PdfReader",
+        lambda path: types.SimpleNamespace(pages=[Page("a\x00b"), Page(None), Page("c")]),
     )
     p = tmp_path / "x.PDF"  # extension match is case-insensitive
     p.write_bytes(b"%PDF")
@@ -178,7 +180,9 @@ def test_sqlite_retrieve_on_empty_store_returns_nothing(monkeypatch, tmp_path):
     pytest.importorskip("sqlite_vec")
     from retrieval import sqlite_store
 
-    monkeypatch.setattr(sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", "float[4]"))
+    monkeypatch.setattr(
+        sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", "float[4]")
+    )
     path = str(tmp_path / "e.sqlite3")
     assert sqlite_store.retrieve("anything at all?", [0.0] * 4, path=path) == []
 
@@ -186,7 +190,10 @@ def test_sqlite_retrieve_on_empty_store_returns_nothing(monkeypatch, tmp_path):
 def test_fts5_query_quotes_every_word():
     from retrieval.sqlite_store import _fts5_query
 
-    assert _fts5_query('what is "port state" control?') == '"what" AND "is" AND "port" AND "state" AND "control"'
+    assert (
+        _fts5_query('what is "port state" control?')
+        == '"what" AND "is" AND "port" AND "state" AND "control"'
+    )
     assert _fts5_query("??!") == ""
 
 

@@ -100,9 +100,7 @@ def test_retrieve_sqlite_backend_dispatch(monkeypatch):
         sqlite_store, "retrieve",
         lambda *a: seen.setdefault("a", a) and [P("u1", content="hello")],
     )  # fmt: skip
-    monkeypatch.setattr(
-        retriever, "_retrieve_postgres", lambda *a: pytest.fail("wrong backend")
-    )
+    monkeypatch.setattr(retriever, "_retrieve_postgres", lambda *a: pytest.fail("wrong backend"))
     out = retriever.retrieve("query", top_k=3, fetch_k=11, rrf_k=5, rerank=False)
     assert seen["a"] == ("query", [1.0, 2.0], 20, 11, 5)
     assert [p["url"] for p in out] == ["u1"]
@@ -187,7 +185,11 @@ def row(i):
 
 def test_postgres_retrieval_fuses_dense_and_sparse_with_rrf(monkeypatch):
     # chunk 2 is rank 1 (dense) and rank 0 (sparse) -> highest fused score
-    script = {"dense": [(1,), (2,), (3,)], "sparse": [(2,), (4,)], "rows": [row(i) for i in (1, 2, 3, 4)]}
+    script = {
+        "dense": [(1,), (2,), (3,)],
+        "sparse": [(2,), (4,)],
+        "rows": [row(i) for i in (1, 2, 3, 4)],
+    }
     out, cur = run_pg(monkeypatch, script, top_k=3, rrf_k=60)
     assert [p["url"] for p in out] == ["url2", "url1", "url4"]
     assert out[0]["score"] == pytest.approx(1 / 61 + 1 / 60)
@@ -264,9 +266,7 @@ def pipe(monkeypatch):
         return state.passages
 
     monkeypatch.setattr(pipeline, "retrieve", fake_retrieve)
-    monkeypatch.setattr(
-        pipeline, "log_query", lambda q, ps, **kw: state.logged.append((q, ps, kw))
-    )
+    monkeypatch.setattr(pipeline, "log_query", lambda q, ps, **kw: state.logged.append((q, ps, kw)))
     return state
 
 

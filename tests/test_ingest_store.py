@@ -22,7 +22,9 @@ DIM = 4
 @pytest.fixture
 def lite(monkeypatch, tmp_path):
     """sqlite backend with a tiny vector dimension and a fake embedder."""
-    monkeypatch.setattr(sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", f"float[{DIM}]"))
+    monkeypatch.setattr(
+        sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", f"float[{DIM}]")
+    )
     monkeypatch.setattr(ing, "STORAGE_BACKEND", "sqlite")
     path = str(tmp_path / "corpus.sqlite3")
     monkeypatch.setattr(sqlite_store, "SQLITE_PATH", path)
@@ -184,7 +186,9 @@ def pg(monkeypatch):
         return holder.conn
 
     monkeypatch.setattr(ing.psycopg, "connect", connect)
-    monkeypatch.setattr(ing, "register_vector", lambda conn: holder.__dict__.setdefault("reg", conn))
+    monkeypatch.setattr(
+        ing, "register_vector", lambda conn: holder.__dict__.setdefault("reg", conn)
+    )
     monkeypatch.setattr(ing, "embed_texts", lambda texts: [[0.1] * 3 for _ in texts])
     monkeypatch.setattr(ing, "Json", lambda v: ("JSON", v))
     monkeypatch.setattr(ing, "STORAGE_BACKEND", "postgres")
@@ -197,7 +201,9 @@ def test_postgres_ingest_inserts_new_document(pg):
     assert n == 1
     assert pg.autocommit is False and pg.reg is pg.conn
     assert pg.dsn == ing.DATABASE_URL
-    inserts = [e for e in pg.conn.log if e[0] == "execute" and e[1].startswith("INSERT INTO documents")]
+    inserts = [
+        e for e in pg.conn.log if e[0] == "execute" and e[1].startswith("INSERT INTO documents")
+    ]
     assert len(inserts) == 1
     assert inserts[0][2][:4] == ("test", "http://a", "T", "L") and inserts[0][2][4] == "2024-01-01"
     many = next(e for e in pg.conn.log if e[0] == "executemany")
@@ -221,7 +227,9 @@ def test_postgres_ingest_changed_updates_and_replaces_chunks(pg):
     assert ing.ingest_documents([doc(title="NT", license="LL", published_at="2025-05-05")]) == 1
     sqls = [e[1].split()[0] + " " + e[1].split()[1] for e in pg.conn.log if e[0] == "execute"]
     assert "DELETE FROM" in sqls and "UPDATE documents" in sqls
-    assert not any(e[1].startswith("INSERT INTO documents") for e in pg.conn.log if e[0] == "execute")
+    assert not any(
+        e[1].startswith("INSERT INTO documents") for e in pg.conn.log if e[0] == "execute"
+    )
     delete = next(e for e in pg.conn.log if e[1].startswith("DELETE FROM chunks"))
     assert delete[2] == (7,)
     update = next(e for e in pg.conn.log if e[1].startswith("UPDATE documents"))
@@ -241,7 +249,9 @@ def test_postgres_ingest_blank_text_skipped(pg):
 
 @pytest.fixture
 def lite_refs(monkeypatch, tmp_path):
-    monkeypatch.setattr(sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", f"float[{DIM}]"))
+    monkeypatch.setattr(
+        sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", f"float[{DIM}]")
+    )
     path = str(tmp_path / "bf.sqlite3")
     conn = sqlite_store.connect(path)
     sqlite_store.create_schema(conn)
@@ -249,7 +259,11 @@ def lite_refs(monkeypatch, tmp_path):
     sqlite_store.insert_chunks(
         conn,
         did,
-        ["Fire rules in SOLAS Chapter II-2 apply.", "nothing regulatory here", "See MARPOL Annex VI."],
+        [
+            "Fire rules in SOLAS Chapter II-2 apply.",
+            "nothing regulatory here",
+            "See MARPOL Annex VI.",
+        ],
         [[0.0] * DIM] * 3,
     )
     conn.commit()
@@ -360,7 +374,9 @@ class Stamp:
 
 
 def test_export_sqlite_copies_documents_and_chunks(monkeypatch, tmp_path):
-    monkeypatch.setattr(sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", f"float[{DIM}]"))
+    monkeypatch.setattr(
+        sqlite_store, "SCHEMA", sqlite_store.SCHEMA.replace("float[384]", f"float[{DIM}]")
+    )
     out = str(tmp_path / "snap.sqlite3")
     # a stale file at the target must be replaced, not appended to
     open(out, "w").write("garbage")

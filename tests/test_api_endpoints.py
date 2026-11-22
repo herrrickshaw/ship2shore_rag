@@ -59,10 +59,15 @@ def test_crew_lifecycle_and_filters(client):
     assert client.get("/crew", params={"vessel": "ghost"}).status_code == 404
     assert client.post("/crew/1/signoff", json={"sign_off_date": "2026-06-01"},
                        headers=DECK).status_code == 403  # fmt: skip
-    assert client.post("/crew/1/signoff", json={"sign_off_date": "2026-06-01"}, headers=CAP).json() == {"ok": True}
+    assert client.post(
+        "/crew/1/signoff", json={"sign_off_date": "2026-06-01"}, headers=CAP
+    ).json() == {"ok": True}
     jane = next(c for c in client.get("/crew").json() if c["name"] == "Jane")
     assert jane["sign_off_date"] == "2026-06-01"
-    assert client.post("/crew/1/signoff", json={"sign_off_date": "garbage"}, headers=CAP).status_code == 422
+    assert (
+        client.post("/crew/1/signoff", json={"sign_off_date": "garbage"}, headers=CAP).status_code
+        == 422
+    )
 
 
 def test_log_entries_flow_and_gates(client):
@@ -88,7 +93,10 @@ def test_equipment_parts_maintenance(client):
     assert client.post("/vessels/MV Test/equipment", json={"name": "ME", "manufacturer": "MAN",
                        "model": "6S60", "equipment_type": "diesel", "serial_number": "S1"},
                        headers=CHIEF).json() == {"id": 1}  # fmt: skip
-    assert client.post("/vessels/MV Test/equipment", json={"name": "X"}, headers=DECK).status_code == 403
+    assert (
+        client.post("/vessels/MV Test/equipment", json={"name": "X"}, headers=DECK).status_code
+        == 403
+    )
     eq = client.get("/vessels/MV Test/equipment").json()
     assert eq[0]["name"] == "ME" and eq[0]["model"] == "6S60"
     assert client.post("/equipment/1/parts", json={"part_number": "P1", "part_name": "Liner",
@@ -97,7 +105,12 @@ def test_equipment_parts_maintenance(client):
                        headers=DECK).status_code == 403  # fmt: skip
     parts = client.get("/equipment/1/parts").json()
     assert parts[0]["part_number"] == "P1" and parts[0]["stock_quantity"] == 3
-    m = {"job_type": "breakdown", "description": "Cracked", "running_hours": 10.5, "parts_used": "P1"}
+    m = {
+        "job_type": "breakdown",
+        "description": "Cracked",
+        "running_hours": 10.5,
+        "parts_used": "P1",
+    }
     assert client.post("/equipment/1/maintenance", json=m, headers=CHIEF).json() == {"id": 1}
     assert client.post("/equipment/1/maintenance", json=m, headers=DECK).status_code == 403
     assert client.post("/equipment/1/maintenance", json={**m, "job_type": "nap"},
@@ -125,10 +138,21 @@ def test_fuel_and_procurement(client):
     assert client.get("/vessels/MV Test/procurement", params={"status": "approved"}).json() == []
     assert client.post("/procurement/1/approve", headers=DECK).status_code == 403
     assert client.post("/procurement/1/approve", headers=CAP).json() == {"ok": True}
-    assert client.get("/vessels/MV Test/procurement", params={"status": "approved"}).json()[0]["id"] == 1
-    assert client.patch("/procurement/1/status", json={"status": "received"}, headers=DECK).status_code == 403
-    assert client.patch("/procurement/1/status", json={"status": "received"}, headers=CAP).json() == {"ok": True}
-    assert client.patch("/procurement/1/status", json={"status": "lost"}, headers=CAP).status_code == 422
+    assert (
+        client.get("/vessels/MV Test/procurement", params={"status": "approved"}).json()[0]["id"]
+        == 1
+    )
+    assert (
+        client.patch("/procurement/1/status", json={"status": "received"}, headers=DECK).status_code
+        == 403
+    )
+    assert client.patch(
+        "/procurement/1/status", json={"status": "received"}, headers=CAP
+    ).json() == {"ok": True}
+    assert (
+        client.patch("/procurement/1/status", json={"status": "lost"}, headers=CAP).status_code
+        == 422
+    )
     assert client.get("/vessels/MV Test/procurement").json()[0]["status"] == "received"
 
 
@@ -156,14 +180,23 @@ def test_safety_endpoints_and_find_similar(client, monkeypatch):
     r = client.post("/vessels/MV Test/safety", params={"find_similar": "true"},
                     json={"incident_type": "near_miss", "description": "Slip"}, headers=DECK)  # fmt: skip
     assert r.json() == {"id": 2, "similar": [{"title": "T"}]} and seen == ["Slip"]
-    assert client.post("/vessels/MV Test/safety", json={**body, "severity": "huge"}).status_code == 422
+    assert (
+        client.post("/vessels/MV Test/safety", json={**body, "severity": "huge"}).status_code == 422
+    )
     assert len(client.get("/vessels/MV Test/safety").json()) == 2
     assert client.get("/vessels/MV Test/safety", params={"status": "closed"}).json() == []
     assert client.get("/vessels/MV Test/safety", params={"status": "open"}).json() != []
     reportable = client.get("/safety/reportable").json()
     assert [x["description"] for x in reportable] == ["Fire"]
-    assert client.post("/safety/1/close", json={"corrective_action": "Fixed"}, headers=DECK).status_code == 403
-    assert client.post("/safety/1/close", json={"corrective_action": "Fixed"}, headers=CAP).json() == {"ok": True}
+    assert (
+        client.post(
+            "/safety/1/close", json={"corrective_action": "Fixed"}, headers=DECK
+        ).status_code
+        == 403
+    )
+    assert client.post(
+        "/safety/1/close", json={"corrective_action": "Fixed"}, headers=CAP
+    ).json() == {"ok": True}
     assert client.get("/safety/reportable").json() == []
     closed = client.get("/vessels/MV Test/safety", params={"status": "closed"}).json()
     assert closed[0]["corrective_action"] == "Fixed" and closed[0]["closed_by"] == 1

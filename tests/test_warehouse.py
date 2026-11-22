@@ -40,7 +40,9 @@ def producer(monkeypatch):
     kafka = types.ModuleType("kafka")
     kafka.KafkaProducer = KP
     mod = load(monkeypatch, "producer", kafka=kafka)
-    monkeypatch.setattr(mod.time, "sleep", lambda s: state.__dict__.setdefault("sleeps", []).append(s))
+    monkeypatch.setattr(
+        mod.time, "sleep", lambda s: state.__dict__.setdefault("sleeps", []).append(s)
+    )
     return mod, sent, state
 
 
@@ -67,7 +69,14 @@ def test_make_position_drifts_from_start(producer):
     assert p["latitude"] == pytest.approx(lat + 0.01 * math.sin(10), abs=1e-5)
     assert p["longitude"] == pytest.approx(lon + 0.01 * math.cos(10), abs=1e-5)
     assert 8 <= p["speed_knots"] <= 18 and 0 <= p["heading_deg"] <= 359
-    assert set(p) == {"vessel_id", "reading_time", "latitude", "longitude", "speed_knots", "heading_deg"}
+    assert set(p) == {
+        "vessel_id",
+        "reading_time",
+        "latitude",
+        "longitude",
+        "speed_knots",
+        "heading_deg",
+    }
 
 
 def test_every_vessel_has_a_start_position(producer):
@@ -100,7 +109,11 @@ def test_main_zero_ticks_publishes_nothing_but_closes(producer, monkeypatch):
     mod, sent, state = producer
     monkeypatch.setattr(sys, "argv", ["producer.py", "--ticks", "0"])
     mod.main()
-    assert sent == [] and state.closed is True and state.kwargs["bootstrap_servers"] == "localhost:9092"
+    assert (
+        sent == []
+        and state.closed is True
+        and state.kwargs["bootstrap_servers"] == "localhost:9092"
+    )
 
 
 def test_main_stops_cleanly_on_keyboard_interrupt(producer, monkeypatch):
@@ -164,10 +177,20 @@ def test_writer_routes_messages_to_the_right_tables(writer, monkeypatch, capsys)
                              77.5, "rpm")  # fmt: skip
     pos_sql, pos_params = state.executed[2]
     assert pos_sql.startswith("INSERT INTO position_reports")
-    assert pos_params == ("Amadeus", datetime.fromisoformat("2026-01-02T03:04:06+00:00"), 56.5, -2.5, 12.0, 90.0)
+    assert pos_params == (
+        "Amadeus",
+        datetime.fromisoformat("2026-01-02T03:04:06+00:00"),
+        56.5,
+        -2.5,
+        12.0,
+        90.0,
+    )
     out = capsys.readouterr().out.splitlines()
     assert out[0].startswith("listening for sensor-readings and position-reports -> /tmp/x.duckdb")
-    assert out[1:] == ["wrote sensor-readings row for Dali", "wrote position-reports row for Amadeus"]
+    assert out[1:] == [
+        "wrote sensor-readings row for Dali",
+        "wrote position-reports row for Amadeus",
+    ]
 
 
 def test_writer_default_db_and_bootstrap(writer, monkeypatch):
