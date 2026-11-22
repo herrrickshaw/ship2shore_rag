@@ -1,0 +1,13 @@
+[run]
+source = .
+omit =
+    tests/*
+    */conftest.py
+    */test_*.py
+    .venv/*
+    venv/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
