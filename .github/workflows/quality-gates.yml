@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11", cache: pip }
       - run: pip install pytest pytest-cov pyyaml sqlite-vec beautifulsoup4 python-docx openpyxl python-pptx pypdf requests "psycopg[binary]" pgvector fastapi httpx apscheduler
       - name: Run tests with coverage (no live Postgres / no heavy ML deps needed for these)
