@@ -5,4 +5,4 @@
 ruff>=0.16
 black>=26.0
 pre-commit>=4.0
-pytest-cov>=6.0
+pytest-cov>=7.1.0
