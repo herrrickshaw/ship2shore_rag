@@ -60,9 +60,23 @@ def verify_api_key(x_api_key: str | None = Header(default=None)) -> None:
 app = FastAPI(
     title="ship2shore_rag operations API", version="0.1.0", dependencies=[Depends(verify_api_key)]
 )
+# Which websites a browser may call this API from. Defaults to the hosted demo
+# frontend plus the usual local dev ports; override with a comma-separated
+# CORS_ALLOW_ORIGINS. Opening it to every site requires asking for "*".
+DEFAULT_CORS_ORIGINS = (
+    "https://ship2shore-ops-demo.lovable.app,http://localhost:3000,http://localhost:5173"
+)
+
+
+def cors_origins(raw: str | None) -> list[str]:
+    """Origins from a comma-separated setting; unset or blank means the defaults."""
+    entries = (o.strip().rstrip("/") for o in (raw or "").split(","))
+    return [o for o in entries if o] or DEFAULT_CORS_ORIGINS.split(",")
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten to your frontend's origin before any real deployment
+    allow_origins=cors_origins(os.environ.get("CORS_ALLOW_ORIGINS")),
     allow_methods=["*"],
     allow_headers=["*"],
 )
