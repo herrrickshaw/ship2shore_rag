@@ -31,6 +31,45 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for a structural map of the system
 (data/application/technology layers, and how the pipeline evolved) —
 this file is setup/usage, that one is "how does this actually fit together."
 
+## In plain English
+
+*This section is for readers who do not write software.*
+
+**What is it?** A search assistant for shipping and maritime safety. It collects public documents, such as
+accident investigation reports and research papers. When you ask a question, it finds the passages most
+likely to answer it. It is built so that a copy can work on board a ship with no internet.
+
+**How does it answer?** In two steps:
+1. **Find.** It searches in two ways at once: by meaning (so "engine blaze" can find "machinery space fire")
+   and by exact words (so a regulation number is not missed). It then combines the two rankings.
+2. **Write (optional).** If you supply a key for Claude, an AI model writes a short answer from those
+   passages and cites them. Without a key you get the passages themselves.
+
+**A second part: ship operations records.** The repository also keeps records of the kind a ship operator
+needs, such as vessels, crew, logbooks, maintenance, fuel and safety events, with roles that decide who may
+do what.
+
+**Who might use it?** A safety officer looking for how similar accidents happened, a student of maritime law,
+or a developer who wants a worked example of a search assistant that works offline.
+
+**How much should you trust it?**
+- It only knows the documents that have been loaded into it. A missing answer does not mean the rule or
+  incident does not exist.
+- AI-written answers can be wrong even with citations. Open the cited source before relying on it.
+- It is **not** a certified navigation, safety or compliance system.
+- The online demonstration uses made-up data.
+
+**Where does your information go?** Searching happens on your own computer or server. If you turn on the
+optional written answers, your question and the matching passages are sent to Anthropic, the company that makes Claude.
+
+**Words you will meet**
+- **RAG:** look up relevant text first, then answer from it.
+- **Embedding:** a list of numbers that captures the meaning of a sentence, so similar sentences can be found.
+- **API:** the doorway another program, such as a web page, uses to talk to this one.
+
+**What you need:** installing it takes technical skill (Python, and a database for the shore-side version).
+Searching has no per-question fee; the optional written answers are billed by Anthropic.
+
 ## Stack
 
 - **Postgres + [pgvector](https://github.com/pgvector/pgvector)** — shore-side chunk
@@ -422,10 +461,11 @@ to be the same instance, that instance needs the `vector` extension
 installed first — they are two separate concerns today (see "Operations
 module" above), and this deployment only stood up the ops side.
 
-**Known gap, not yet closed:** `allow_origins` in `api.py` is still `"*"`,
-not tightened to the Lovable app's actual origin — fine for a public demo
-answering only seeded, throwaway data, but the thing to fix first if this
-ever serves real fleet data.
+**Which websites can call the API:** `api.py` now allows only the demo
+frontend (`ship2shore-ops-demo.lovable.app`) and local development ports by
+default. Set `CORS_ALLOW_ORIGINS` (comma-separated) to change the list. The
+hosted demo picks this up only after its next redeploy. This limits which web
+pages a browser will let call the API; `API_KEY` is still the access gate.
 
 ### Honest scope
 
